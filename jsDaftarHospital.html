@@ -1,0 +1,126 @@
+<script>
+    /**
+     * @type {Array<Array<any>> | undefined} dataAsal - Data asal yang diterima dari Google Sheets.
+     * Setiap elemen dalam array luar mewakili satu rekod hospital.
+     * Struktur dalaman setiap rekod (array dalam):
+     * [0]: ID Hospital
+     * [1]: Kunci
+     * [2]: Nama Hospital
+     * [3]: Laman Sesawang (boleh jadi undefined)
+     * [4]: Pautan Panduan (boleh jadi undefined)
+     * [5]: Alamat
+     * [6]: Emel
+     * [7]: Tel Pejabat
+     * [8]: MS ISO 15189 (boolean, true jika diakreditasi)
+     * [9]: MSQH (boolean, true jika diakreditasi)
+     * [10]: Tarikh kemas kini terakhir
+     */
+    let dataAsal;
+
+
+    /**
+     * Event listener yang dijalankan apabila DOM telah dimuat sepenuhnya.
+     * Ia memanggil fungsi `ambilData` dari skrip Google Apps
+     * melalui `google.script.run` dan menggunakan `simpanData` sebagai
+     * success handler untuk memproses data yang dikembalikan.
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+        google.script.run.withSuccessHandler(simpanData).ambilData(true, false, false);
+    })
+
+
+    /**
+     * Membina jadual pendaftaran hospital berdasarkan data yang disimpan dalam
+     * `dataAsal`. Ia akan mencari elemen dengan ID "badan-jadual-daftar-hospital"
+     * dan mengisi baris-baris jadual dengan data hospital.
+     */
+    function binaJadualDaftarHospital() {
+        // Dapatkan elemen tbody jadual untuk diisi dengan data.
+        const badanJadual = document.getElementById("badan-jadual-daftar-hospital");
+
+        // Ambil data hospital daripada pembolehubah global dataAsal.
+        const data = dataAsal;
+        data.sort()
+
+        // Iterasi melalui setiap rekod hospital dalam data.
+        data.forEach(rekod => {
+            // Cipta elemen baris jadual (<tr>).
+            let baris = document.createElement('tr');
+
+            // Cipta elemen sel jadual (<td>) untuk setiap lajur.
+            let lajurNama = document.createElement('td');
+            let lajurAlamat = document.createElement('td');
+            let lajurAkre = document.createElement('td');
+            let lajurTarikh = document.createElement('td');
+
+            // Dapatkan nama hospital daripada rekod.
+            let nama = rekod[2];
+            // Jika terdapat pautan laman web hospital, jadikan nama sebagai pautan.
+            let namaLink = rekod[3]? nama.link(rekod[3]) : nama;
+
+            // Teks untuk pautan buku panduan.
+            let panduan = "[ Buku Panduan ]";
+            // Jika terdapat pautan buku panduan, jadikan teks sebagai pautan.
+            let panduanLink = panduan.link(rekod[4]);
+
+            // Set kandungan sel nama. Jika terdapat pautan panduan, gabungkan nama dan pautan panduan.
+            lajurNama.innerHTML = rekod[4]? namaLink + '</br>' + panduanLink : namaLink;
+            
+            // Gabungkan bahagian-bahagian alamat yang tidak kosong dengan pemisah <br>.
+            lajurAlamat.innerHTML = [rekod[5], rekod[6], rekod[7]].filter(Boolean).join('</br>');
+
+            // Teks untuk jenis akreditasi.
+            let iso = "MS ISO 15189";
+            let msqh = "MSQH";
+
+            // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
+            let akre = (rekod[8] && rekod[9])? iso + '</br>' + msqh
+                : rekod[8]? iso
+                : rekod[9]? msqh
+                : "-";
+            
+            // Set kandungan sel akreditasi.
+            lajurAkre.innerHTML = akre;
+
+            // Set kandungan sel tarikh kemas kini.
+            lajurTarikh.innerHTML = rekod[10] + '</br>';
+
+            // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
+            // Butang ubah mengandungi maklumat ID Hospital.
+            butang_ubah = document.createElement('button');
+            butang_ubah.innerHTML = "Ubah";
+            butang_ubah.dataset.idHospital = btoa(rekod[0]);
+            butang_ubah.setAttribute("type", "button");
+            butang_ubah.setAttribute("class", "btn btn-outline-warning");
+            lajurTarikh.appendChild(butang_ubah);
+
+            // Tambahkan setiap sel ke dalam baris.
+            baris.appendChild(lajurNama);
+            baris.appendChild(lajurAlamat);
+            baris.appendChild(lajurAkre);
+            baris.appendChild(lajurTarikh);
+
+            // Tambahkan baris yang telah diisi ke dalam badan jadual.
+            badanJadual.appendChild(baris);
+        });
+    }
+
+
+    /**
+     * Fungsi success handler yang dipanggil setelah data dari Google Sheets
+     * berjaya diterima oleh `google.script.run.ambilData()`. Ia menyimpan data
+     * yang diterima ke dalam pembolehubah global `dataAsal` dan kemudian
+     * memanggil fungsi `binaJadualDaftarHospital()` untuk memaparkan data
+     * dalam bentuk jadual.
+     *
+     * @param {Array<Array<any>> | undefined} dataDariGS Data yang diterima dari Google Sheets.
+     * Struktur data ini sama seperti yang dijelaskan untuk `dataAsal`.
+     */
+    function simpanData(dataDariGS) {
+        // Simpan data yang diterima dari Google Sheets ke dalam pembolehubah global.
+        dataAsal = dataDariGS;
+
+        // Bina jadual pendaftaran hospital menggunakan data yang telah disimpan.
+        binaJadualDaftarHospital();
+    }
+</script>
