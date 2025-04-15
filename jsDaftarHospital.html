@@ -87,11 +87,15 @@
 
             // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
             // Butang ubah mengandungi maklumat ID Hospital.
+            // Butang ubah akan mengaktifkan modal Daftar Hospital.
             butang_ubah = document.createElement('button');
             butang_ubah.innerHTML = "Ubah";
-            butang_ubah.dataset.idHospital = btoa(rekod[0]);
+            butang_ubah.dataset.idHospital = rekod[0];
             butang_ubah.setAttribute("type", "button");
             butang_ubah.setAttribute("class", "btn btn-outline-warning");
+            butang_ubah.setAttribute("data-bs-toggle", "modal");
+            butang_ubah.setAttribute("data-bs-target", "#modalDaftarHospital")
+            butang_ubah.addEventListener("click", e => paparkanDataHospital(e.target))
             lajurTarikh.appendChild(butang_ubah);
 
             // Tambahkan setiap sel ke dalam baris.
@@ -103,6 +107,20 @@
             // Tambahkan baris yang telah diisi ke dalam badan jadual.
             badanJadual.appendChild(baris);
         });
+    }
+
+    function paparkanDataHospital(butangIni) {
+        let idHospital = butangIni.dataset.idHospital;
+        let dataHospital = dataAsal.filter(hospital => hospital[0] === idHospital)[0];
+
+        document.getElementById("namaHospital").value = dataHospital[2];
+        document.getElementById("wwwHospital").value = dataHospital[3];
+        document.getElementById("wwwPanduan").value = dataHospital[4];
+        document.getElementById("alamat").value = dataHospital[5];
+        document.getElementById("emel").value = dataHospital[6];
+        document.getElementById("telPejabat").value = dataHospital[7];
+        document.getElementById("msiso").setAttribute("checked", dataHospital[8]);
+        document.getElementById("msqh").setAttribute("checked", dataHospital[9]);
     }
 
 
