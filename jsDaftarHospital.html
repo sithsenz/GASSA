@@ -25,7 +25,7 @@
      * success handler untuk memproses data yang dikembalikan.
      */
     document.addEventListener('DOMContentLoaded', () => {
-        google.script.run.withSuccessHandler(simpanData).ambilData(true, false, false);
+        google.script.run.withSuccessHandler(simpanData).ambilData(1, 0, 0);
     })
 
 
@@ -74,9 +74,9 @@
             let msqh = "MSQH";
 
             // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
-            let akre = (rekod[8] && rekod[9])? iso + '</br>' + msqh
-                : rekod[8]? iso
-                : rekod[9]? msqh
+            let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE")? iso + '</br>' + msqh
+                : rekod[8]=="TRUE"? iso
+                : rekod[9]=="TRUE"? msqh
                 : "-";
             
             // Set kandungan sel akreditasi.
@@ -136,8 +136,8 @@
         ambil("alamat").value = dataHospital[5];
         ambil("emel").value = dataHospital[6];
         ambil("telPejabat").value = dataHospital[7];
-        ambil("msiso").setAttribute("checked", dataHospital[8]);
-        ambil("msqh").setAttribute("checked", dataHospital[9]);
+        (dataHospital[8]==="TRUE")? ambil("msiso").checked=true : ambil("msiso").checked=false;
+        (dataHospital[9]==="TRUE")? ambil("msqh").checked=true : ambil("msqh").checked=false;
 
         // Persediaan untuk pengesahan
         let butangHantar = ambil("butangHantar");

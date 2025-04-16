@@ -36,7 +36,13 @@ function doGet(e) {
 
 
 function ambilData(hospital, ujian, perjanjian) {
-    if (hospital) return dataDataHospital;
+    bitData = hospital + ujian + perjanjian;
+    if (bitData == 1) {
+        let dataDataHospital = lembaranDataHospital.getRange("A1").getDataRegion().getDisplayValues();
+        dataDataHospital.shift();
+
+        return dataDataHospital;
+    }
 }
 
 
@@ -48,7 +54,7 @@ function kemaskiniHospital(dataBaru) {
         lembaranDataHospital.getRange(baris, i).setValue(dataBaru[i-2]);
     }
 
-    return ambilData(true, false, false);
+    return ambilData(1, 0, 0);
 }
 
 
@@ -113,8 +119,6 @@ const hamparanDataPerjanjian = SpreadsheetApp.openById("1ZAT5On_Ag_2RD9L-8RivArW
 
 //Data Hospital
 const lembaranDataHospital = hamparanDataHospital.getSheetByName("Sheet1");
-let dataDataHospital = lembaranDataHospital.getRange("A1").getDataRegion().getDisplayValues();
-dataDataHospital.shift();
 
 
 //Data Ujian
