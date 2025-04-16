@@ -36,7 +36,7 @@
      */
     function binaJadualDaftarHospital() {
         // Dapatkan elemen tbody jadual untuk diisi dengan data.
-        const badanJadual = document.getElementById("badan-jadual-daftar-hospital");
+        const badanJadual = ambil("badan-jadual-daftar-hospital");
 
         // Ambil data hospital daripada pembolehubah global dataAsal.
         const data = dataAsal;
@@ -45,13 +45,13 @@
         // Iterasi melalui setiap rekod hospital dalam data.
         data.forEach(rekod => {
             // Cipta elemen baris jadual (<tr>).
-            let baris = document.createElement('tr');
+            let baris = buat('tr');
 
             // Cipta elemen sel jadual (<td>) untuk setiap lajur.
-            let lajurNama = document.createElement('td');
-            let lajurAlamat = document.createElement('td');
-            let lajurAkre = document.createElement('td');
-            let lajurTarikh = document.createElement('td');
+            let lajurNama = buat('td');
+            let lajurAlamat = buat('td');
+            let lajurAkre = buat('td');
+            let lajurTarikh = buat('td');
 
             // Dapatkan nama hospital daripada rekod.
             let nama = rekod[2];
@@ -88,7 +88,7 @@
             // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
             // Butang ubah mengandungi maklumat ID Hospital.
             // Butang ubah akan mengaktifkan modal Daftar Hospital.
-            butang_ubah = document.createElement('button');
+            butang_ubah = buat('button');
             butang_ubah.innerHTML = "Ubah";
             butang_ubah.dataset.idHospital = rekod[0];
             butang_ubah.setAttribute("type", "button");
@@ -113,14 +113,59 @@
         let idHospital = butangIni.dataset.idHospital;
         let dataHospital = dataAsal.filter(hospital => hospital[0] === idHospital)[0];
 
-        document.getElementById("namaHospital").value = dataHospital[2];
-        document.getElementById("wwwHospital").value = dataHospital[3];
-        document.getElementById("wwwPanduan").value = dataHospital[4];
-        document.getElementById("alamat").value = dataHospital[5];
-        document.getElementById("emel").value = dataHospital[6];
-        document.getElementById("telPejabat").value = dataHospital[7];
-        document.getElementById("msiso").setAttribute("checked", dataHospital[8]);
-        document.getElementById("msqh").setAttribute("checked", dataHospital[9]);
+        ambil("tajukModal").innerHTML = "Kemaskini Data Hospital";
+
+        ambil("namaHospital").value = dataHospital[2];
+        ambil("wwwHospital").value = dataHospital[3];
+        ambil("wwwPanduan").value = dataHospital[4];
+        ambil("alamat").value = dataHospital[5];
+        ambil("emel").value = dataHospital[6];
+        ambil("telPejabat").value = dataHospital[7];
+        ambil("msiso").setAttribute("checked", dataHospital[8]);
+        ambil("msqh").setAttribute("checked", dataHospital[9]);
+
+        let butangHantar = ambil("butangHantar");
+        butangHantar.dataset.idHospital = dataHospital[0];
+        butangHantar.dataset.hospital = "lama";
+        butangHantar.dataset.ubat = dataHospital[1];
+    }
+
+
+    async function makanCerna(ubat) {
+        let ubatKod = new TextEncoder().encode(ubat);
+        let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
+        let ubatArray = Array.from(new Uint8Array(ubatBuffer));
+        let ubatHex = ubatArray.map((b)=>b.toString(16).padStart(2, "0")).join("");
+
+        return ubatHex;
+    }
+
+
+    function bolehCerna() {
+        (window.crypto?.subtle)? alert("Tahniah! Boleh cerna.") : alert("Maaf, akan cirit!");
+    }
+
+
+    async function ambilUbat(ubat) {
+        let makanan = await makanCerna(ubat);
+        
+        return makanan;
+    }
+
+    
+    // fungsi sementara, cuba-cuba
+    function hantar(butangIni) {
+        let jenisUrusan = butangIni.dataset.hospital;
+
+        if (jenisUrusan == "lama") {
+            let ubat = butangIni.dataset.ubat;
+            console.log(ubat);
+
+            ambilUbat(ambil("Kunci").value).then((makanan) => {
+                console.log(makanan);
+                (ubat == makanan)? alert("Kunci sama") : alert("Kunci tidak sama");
+            });
+        }
     }
 
 
@@ -135,10 +180,21 @@
      * Struktur data ini sama seperti yang dijelaskan untuk `dataAsal`.
      */
     function simpanData(dataDariGS) {
+        bolehCerna();
         // Simpan data yang diterima dari Google Sheets ke dalam pembolehubah global.
         dataAsal = dataDariGS;
 
         // Bina jadual pendaftaran hospital menggunakan data yang telah disimpan.
         binaJadualDaftarHospital();
+    }
+
+
+    function buat(unsur) {
+        return document.createElement(unsur);
+    }
+
+
+    function ambil(id) {
+        return document.getElementById(id);
     }
 </script>
