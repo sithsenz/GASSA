@@ -40,6 +40,18 @@ function ambilData(hospital, ujian, perjanjian) {
 }
 
 
+function kemaskiniHospital(dataBaru) {
+    let idHospital = dataBaru[0];
+    let baris = Number(idHospital);
+
+    for (let i=3; i<12; i++) {
+        lembaranDataHospital.getRange(baris, i).setValue(dataBaru[i-2]);
+    }
+
+    return ambilData(true, false, false);
+}
+
+
 /**
  * Memasukkan kandungan keratan kod JavaScript yang disimpan dalam file HTML.
  * Fungsi ini membaca kandungan file HTML yang ditentukan menggunakan

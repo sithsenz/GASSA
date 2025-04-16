@@ -109,12 +109,27 @@
         });
     }
 
+    
+    /**
+     * Memaparkan data hospital sedia ada dalam modal untuk pengemaskinian.
+     * 
+     * @param {HTMLElement} butangIni - Butang yang diklik (mengandungi `data-id-hospital`)
+     * @description
+     * 1. Mengambil data hospital dari `dataAsal` berdasarkan ID
+     * 2. Mengisi form modal dengan data terkini (nama, alamat, dll.)
+     * 3. Menyediakan butang hantar dengan:
+     *    - ID hospital
+     *    - Penanda "lama" (untuk bezakan operasi pendaftaran baru / pengemaskinian)
+     *    - Rujukan kesahihan (disimpan dalam atribut `data-ubat`)
+     * 
+     * @note Operasi hantar akan menyemak rujukan kesahihan sebelum kemaskini data.
+     */
     function paparkanDataHospital(butangIni) {
         let idHospital = butangIni.dataset.idHospital;
         let dataHospital = dataAsal.filter(hospital => hospital[0] === idHospital)[0];
 
+        // UI: Set tajuk dan nilai form
         ambil("tajukModal").innerHTML = "Kemaskini Data Hospital";
-
         ambil("namaHospital").value = dataHospital[2];
         ambil("wwwHospital").value = dataHospital[3];
         ambil("wwwPanduan").value = dataHospital[4];
@@ -124,10 +139,11 @@
         ambil("msiso").setAttribute("checked", dataHospital[8]);
         ambil("msqh").setAttribute("checked", dataHospital[9]);
 
+        // Persediaan untuk pengesahan
         let butangHantar = ambil("butangHantar");
-        butangHantar.dataset.idHospital = dataHospital[0];
-        butangHantar.dataset.hospital = "lama";
-        butangHantar.dataset.ubat = dataHospital[1];
+        butangHantar.dataset.idHospital = dataHospital[0];  // ID Hospital
+        butangHantar.dataset.hospital = "lama";  // Penanda operasi
+        butangHantar.dataset.ubat = dataHospital[1];  // Rujukan kesahihan
     }
 
 
@@ -141,29 +157,39 @@
     }
 
 
+    // Periksa sama ada `window.crypto.subtle` wujud (untuk enkripsi web).
     function bolehCerna() {
         (window.crypto?.subtle)? alert("Tahniah! Boleh cerna.") : alert("Maaf, akan cirit!");
     }
 
 
-    async function ambilUbat(ubat) {
-        let makanan = await makanCerna(ubat);
-        
-        return makanan;
-    }
-
-    
     // fungsi sementara, cuba-cuba
     function hantar(butangIni) {
         let jenisUrusan = butangIni.dataset.hospital;
 
+        let idHospital = butangIni.dataset.idHospital;
+        let namaHospital = ambil("namaHospital").value;
+        let wwwHospital = ambil("wwwHospital").value;
+        let wwwPanduan = ambil("wwwPanduan").value;
+        let alamat = ambil("alamat").value;
+        let emel = ambil("emel").value;
+        let telPejabat = ambil("telPejabat").value;
+        let msiso = ambil("msiso").checked;
+        let msqh = ambil("msqh").checked;
+        let tarikh = new Date().toISOString().split("T")[0];
+
+        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, tarikh]
+
         if (jenisUrusan == "lama") {
             let ubat = butangIni.dataset.ubat;
-            console.log(ubat);
 
-            ambilUbat(ambil("Kunci").value).then((makanan) => {
-                console.log(makanan);
-                (ubat == makanan)? alert("Kunci sama") : alert("Kunci tidak sama");
+            makanCerna(ambil("Kunci").value).then((makanan) => {
+                if (ubat == makanan) {
+                    dataAsal = "";
+                    ambil("badan-jadual-daftar-hospital").innerHTML = "";
+                    ambil("butangX").click();
+                    google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
+                } else { alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
             });
         }
     }
@@ -189,11 +215,13 @@
     }
 
 
+    // Cipta dan kembalikan elemen HTML berdasarkan tag
     function buat(unsur) {
         return document.createElement(unsur);
     }
 
 
+    // Dapatkan elemen dari DOM berdasarkan ID
     function ambil(id) {
         return document.getElementById(id);
     }
