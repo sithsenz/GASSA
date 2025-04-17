@@ -12,7 +12,7 @@
             <h1>Senarai Hospital</h1>
         </div>
         <div class="col-auto">
-            <button type="button" class="btn btn-outline-success">Daftar</button>
+            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalDaftarHospital" onclick="daftarHospital()">Daftar</button>
         </div>
     </div>
     <table class="table table-hover text-center align-middle">
@@ -73,9 +73,11 @@
                     </div>
                     <div class="row g-2">
                         <input type="checkbox" class="btn-check" id="msiso" autocomplete="off">
-                        <label class="btn btn-outline-success col" for="msiso">MS ISO 15189</label><br>
+                        <label class="btn btn-outline-success col" for="msiso">MS ISO 15189</label>
                         <input type="checkbox" class="btn-check" id="msqh" autocomplete="off">
                         <label class="btn btn-outline-success col" for="msqh">MSQH</label>
+                        <input type="checkbox" class="btn-check" id="phlas" autocomplete="off">
+                        <label class="btn btn-outline-success col" for="phlas">PHLAS</label>
                     </div>
                     <div class="row g-2">
                         <div class="input-group">
@@ -83,6 +85,12 @@
                                 <input class="form-control" placeholder="Kunci" id="Kunci">
                                     <label for="Kunci">Kunci</label>
                             </div>
+                        </div>
+                        <div id="notaKunci">
+                            <p class="text-danger">Kunci anda adalah rahsia penting. Jangan kongsi kunci ini!</br>
+                            Ia diperlukan untuk pengesahan aktiviti kritikal dalam sistem.</br>
+                            Kunci ini sensitif huruf dan ruang kosong akan disisihkan secara automatik.</br>
+                            Gunakan huruf/nombor/simbol biasa.</p>
                         </div>
                     </div>
                 </div>

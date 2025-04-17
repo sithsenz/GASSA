@@ -50,9 +50,16 @@ function kemaskiniHospital(dataBaru) {
     let idHospital = dataBaru[0];
     let baris = Number(idHospital);
 
-    for (let i=3; i<12; i++) {
+    for (let i=3; i<13; i++) {
         lembaranDataHospital.getRange(baris, i).setValue(dataBaru[i-2]);
     }
+
+    return ambilData(1, 0, 0);
+}
+
+
+function daftarHospitalBaru(dataHospitalBaru) {
+    lembaranDataHospital.appendRow(dataHospitalBaru);
 
     return ambilData(1, 0, 0);
 }

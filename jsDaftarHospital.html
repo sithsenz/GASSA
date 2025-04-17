@@ -13,7 +13,8 @@
      * [7]: Tel Pejabat
      * [8]: MS ISO 15189 (boolean, true jika diakreditasi)
      * [9]: MSQH (boolean, true jika diakreditasi)
-     * [10]: Tarikh kemas kini terakhir
+     * [10]: PHLAS (boolean, true jika diakreditasi)
+     * [11]: Tarikh kemas kini terakhir
      */
     let dataAsal;
 
@@ -72,18 +73,21 @@
             // Teks untuk jenis akreditasi.
             let iso = "MS ISO 15189";
             let msqh = "MSQH";
+            let phlas = "PHLAS";
 
             // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
-            let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE")? iso + '</br>' + msqh
+            let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + msqh + '</br>' + phlas
+                : (rekod[8]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + phlas
                 : rekod[8]=="TRUE"? iso
                 : rekod[9]=="TRUE"? msqh
+                : rekod[10]=="TRUE"? phlas
                 : "-";
             
             // Set kandungan sel akreditasi.
             lajurAkre.innerHTML = akre;
 
             // Set kandungan sel tarikh kemas kini.
-            lajurTarikh.innerHTML = rekod[10] + '</br>';
+            lajurTarikh.innerHTML = rekod[11] + '</br>';
 
             // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
             // Butang ubah mengandungi maklumat ID Hospital.
@@ -107,6 +111,21 @@
             // Tambahkan baris yang telah diisi ke dalam badan jadual.
             badanJadual.appendChild(baris);
         });
+    }
+
+
+    function daftarHospital() {
+        ambil("tajukModal").innerHTML = "Pendaftaran Hospital Baharu";
+        let butiranLama = ambil("modalDaftarHospital").querySelectorAll("input");
+
+        butiranLama.forEach((data) => data.value = "");
+        ambil("msiso").checked = false;
+        ambil("msqh").checked = false;
+        ambil("phlas").checked = false;
+
+        ambil("notaKunci").style.display = "block";
+
+        ambil("butangHantar").dataset.hospital = "baru";
     }
 
     
@@ -138,17 +157,21 @@
         ambil("telPejabat").value = dataHospital[7];
         (dataHospital[8]==="TRUE")? ambil("msiso").checked=true : ambil("msiso").checked=false;
         (dataHospital[9]==="TRUE")? ambil("msqh").checked=true : ambil("msqh").checked=false;
+        (dataHospital[10]==="TRUE")? ambil("phlas").checked=true : ambil("phlas").checked=false;
 
         // Persediaan untuk pengesahan
         let butangHantar = ambil("butangHantar");
         butangHantar.dataset.idHospital = dataHospital[0];  // ID Hospital
         butangHantar.dataset.hospital = "lama";  // Penanda operasi
         butangHantar.dataset.ubat = dataHospital[1];  // Rujukan kesahihan
+
+        // Jangan paparkan nota tentang kunci
+        ambil("notaKunci").style.display = "none";
     }
 
 
     async function makanCerna(ubat) {
-        let ubatKod = new TextEncoder().encode(ubat);
+        let ubatKod = new TextEncoder().encode(ubat.trim());
         let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
         let ubatArray = Array.from(new Uint8Array(ubatBuffer));
         let ubatHex = ubatArray.map((b)=>b.toString(16).padStart(2, "0")).join("");
@@ -176,20 +199,30 @@
         let telPejabat = ambil("telPejabat").value;
         let msiso = ambil("msiso").checked;
         let msqh = ambil("msqh").checked;
+        let phlas = ambil("phlas").checked;
         let tarikh = new Date().toISOString().split("T")[0];
+        let kunci = ambil("Kunci").value;
 
-        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, tarikh]
-
+        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
+        
         if (jenisUrusan == "lama") {
             let ubat = butangIni.dataset.ubat;
 
-            makanCerna(ambil("Kunci").value).then((makanan) => {
+            makanCerna(kunci).then((makanan) => {
                 if (ubat == makanan) {
                     dataAsal = "";
                     ambil("badan-jadual-daftar-hospital").innerHTML = "";
                     ambil("butangX").click();
                     google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
                 } else { alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
+            });
+        } else if (jenisUrusan == "baru") {
+            dataAsal = "";
+            ambil("badan-jadual-daftar-hospital").innerHTML = "";
+            ambil("butangX").click();
+            makanCerna(kunci).then((makanan) => {
+                let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
+                google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
             });
         }
     }
