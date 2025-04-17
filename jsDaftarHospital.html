@@ -114,17 +114,30 @@
     }
 
 
+    /**
+     * Menyediakan modal pendaftaran hospital baharu dengan:
+     * - Setkan tajuk modal
+     * - Kosongkan semua input
+     * - Tunjukkan nota kunci
+     * - Setkan penanda 'baru' pada butang hantar
+     */
     function daftarHospital() {
+        // Set tajuk modal
         ambil("tajukModal").innerHTML = "Pendaftaran Hospital Baharu";
-        let butiranLama = ambil("modalDaftarHospital").querySelectorAll("input");
 
+        // Kosongkan semua input
+        let butiranLama = ambil("modalDaftarHospital").querySelectorAll("input");
         butiranLama.forEach((data) => data.value = "");
+
+        // Reset checkbox
         ambil("msiso").checked = false;
         ambil("msqh").checked = false;
         ambil("phlas").checked = false;
 
+        // Tunjukkan nota kunci (untuk pendaftaran baharu sahaja)
         ambil("notaKunci").style.display = "block";
 
+        // Set jenis operasi kepada "baru" untuk fungsi hantar()
         ambil("butangHantar").dataset.hospital = "baru";
     }
 
@@ -170,6 +183,27 @@
     }
 
 
+    /**
+     * Menyulitkan input pengguna menjadi hash SHA-256 (hex string).
+     * 
+     * @param {string} ubat - Input pengguna akan dicantas secara automatik
+     * @returns {Promise<string>} Hash SHA-256 dalam format hex (64 aksara)
+     * 
+     * @description
+     * Proses hashing:
+     * 1. Bersihkan input (buang ruang kosong di tepi)
+     * 2. Enkod ke UTF-8 → hash dengan SHA-256
+     * 3. Tukar buffer ke string hex
+     * 
+     * @example
+     * makanCerna("kunciRahsia123").then(hash => console.log(hash));
+     * // Output: "a591a6d40bf420404a011733..."
+     * 
+     * @note
+     * - Gunakan untuk pengesahan kunci (client-side).
+     * - Output konsisten dengan hash standard SHA-256.
+     * - Tidak boleh dikembalikan ke input asal.
+     */
     async function makanCerna(ubat) {
         let ubatKod = new TextEncoder().encode(ubat.trim());
         let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
@@ -186,11 +220,30 @@
     }
 
 
-    // fungsi sementara, cuba-cuba
+    /**
+     * Mengendalikan penghantaran data hospital (pendaftaran/kemaskini) berdasarkan jenis urusan.
+     * 
+     * @param {HTMLElement} butangIni - Butang yang mencetuskan fungsi (mengandungi dataset: hospital, idHospital, ubat)
+     * @description
+     * Aliran kerja:
+     * 1. Kumpulkan semua nilai dari form modal
+     * 2. Jika jenis urusan = "lama" (kemaskini):
+     *    - Sahkan kunci dengan hash sedia ada (dataset.ubat)
+     *    - Jika sah, hantar data ke `kemaskiniHospital()`
+     * 3. Jika jenis urusan = "baru" (daftar):
+     *    - Hash kunci, kemudian hantar data ke `daftarHospitalBaru()`
+     * 4. Kosongkan cache dan UI selepas berjaya
+     * 
+     * @note
+     * - Kunci di-hash client-side (makanCerna()) sebelum dibandingkan/dihantar
+     * - Data hospital disusun sebagai array mengikut indeks kolum GS
+     */
     function hantar(butangIni) {
-        let jenisUrusan = butangIni.dataset.hospital;
+        // 1. Tentukan jenis urusan (daftar/kemaskini)
+        let jenisUrusan = butangIni.dataset.hospital;  // "baru" atau "lama"
+        let idHospital = butangIni.dataset.idHospital;  // Undefined untuk hospital baru
 
-        let idHospital = butangIni.dataset.idHospital;
+        // 2. Kumpulkan data dari borang
         let namaHospital = ambil("namaHospital").value;
         let wwwHospital = ambil("wwwHospital").value;
         let wwwPanduan = ambil("wwwPanduan").value;
@@ -203,27 +256,34 @@
         let tarikh = new Date().toISOString().split("T")[0];
         let kunci = ambil("Kunci").value;
 
+        // 3. Susun data untuk Google Sheets
         let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
         
+        // 4. Proses berdasarkan jenis urusan
         if (jenisUrusan == "lama") {
-            let ubat = butangIni.dataset.ubat;
+            // Kemaskini data lama
+            let ubat = butangIni.dataset.ubat;  // Hash kunci sedia ada dari GS
 
             makanCerna(kunci).then((makanan) => {
-                if (ubat == makanan) {
-                    dataAsal = "";
-                    ambil("badan-jadual-daftar-hospital").innerHTML = "";
-                    ambil("butangX").click();
+                if (ubat == makanan) {  // Bandingkan hash kunci input vs hash sedia ada
+                    resetUI();
                     google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
                 } else { alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
             });
         } else if (jenisUrusan == "baru") {
-            dataAsal = "";
-            ambil("badan-jadual-daftar-hospital").innerHTML = "";
-            ambil("butangX").click();
+            // Daftar hospital baru
+            resetUI();
             makanCerna(kunci).then((makanan) => {
                 let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
                 google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
             });
+        }
+
+        // Fungsi bantu untuk reset UI
+        function resetUI() {
+            dataAsal = "";  // Kosongkan cache global
+            ambil("badan-jadual-daftar-hospital").innerHTML = "";  // Kosongkan jadual
+            ambil("butangX").click();  // Tutup modal
         }
     }
 
