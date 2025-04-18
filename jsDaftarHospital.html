@@ -178,7 +178,8 @@
         butangHantar.dataset.hospital = "lama";  // Penanda operasi
         butangHantar.dataset.ubat = dataHospital[1];  // Rujukan kesahihan
 
-        // Jangan paparkan nota tentang kunci
+        // Jangan paparkan nota dan nilai kunci
+        ambil("Kunci").value = "";
         ambil("notaKunci").style.display = "none";
     }
 
