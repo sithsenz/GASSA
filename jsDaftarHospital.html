@@ -14,7 +14,8 @@
      * [8]: MS ISO 15189 (boolean, true jika diakreditasi)
      * [9]: MSQH (boolean, true jika diakreditasi)
      * [10]: PHLAS (boolean, true jika diakreditasi)
-     * [11]: Tarikh kemas kini terakhir
+     * [11]: Status (aktif atau padam)
+     * [12]: Tarikh kemas kini terakhir
      */
     let dataAsal;
 
@@ -36,12 +37,27 @@
      * dan mengisi baris-baris jadual dengan data hospital.
      */
     function binaJadualDaftarHospital() {
-        // Dapatkan elemen tbody jadual untuk diisi dengan data.
+        // Kosongkan dan sedia elemen <tbody> untuk pembinaan jadual baru.
         const badanJadual = ambil("badan-jadual-daftar-hospital");
+        badanJadual.innerHTML = "";
 
-        // Ambil data hospital daripada pembolehubah global dataAsal.
-        const data = dataAsal;
-        data.sort()
+        // Filter data hospital: hanya rekod dengan status "Aktif" (kolum 11)
+        let dataAktif = dataAsal.filter((h) => {return h[11] === "Aktif"});
+
+        // Dapatkan nilai carian dan proses penapisan
+        let carian = ambil("cariHospital").value.toLowerCase();
+        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan); // Asingkan setiap perkataan
+        
+        const data = dataAktif.filter(h => {
+            const nama = h[2].toLowerCase();
+            const alamat = h[5].toLowerCase();
+
+            return carianPerkataan.length === 0 ||  // return semua hospital jika carian kosong
+                carianPerkataan.every(perkataan =>  // setiap perkataan mesti muncul dalam nama atau alamat
+                    nama.includes(perkataan) ||
+                    alamat.includes(perkataan)
+                );
+        });
 
         // Iterasi melalui setiap rekod hospital dalam data.
         data.forEach(rekod => {
@@ -87,7 +103,7 @@
             lajurAkre.innerHTML = akre;
 
             // Set kandungan sel tarikh kemas kini.
-            lajurTarikh.innerHTML = rekod[11] + '</br>';
+            lajurTarikh.innerHTML = rekod[12] + '</br>';
 
             // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
             // Butang ubah mengandungi maklumat ID Hospital.
