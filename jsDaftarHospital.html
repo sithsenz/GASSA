@@ -70,7 +70,7 @@
             let lajurAkre = buat('td');
             let lajurTarikh = buat('td');
 
-            // Dapatkan nama hospital daripada rekod.
+            // Dapatkan id dan nama hospital daripada rekod.
             let nama = rekod[2];
             // Jika terdapat pautan laman web hospital, jadikan nama sebagai pautan.
             let namaLink = rekod[3]? nama.link(rekod[3]) : nama;
@@ -81,7 +81,10 @@
             let panduanLink = panduan.link(rekod[4]);
 
             // Set kandungan sel nama. Jika terdapat pautan panduan, gabungkan nama dan pautan panduan.
-            lajurNama.innerHTML = rekod[4]? namaLink + '</br>' + panduanLink : namaLink;
+            let dataNama = rekod[0] + '</br>' + namaLink;
+            lajurNama.innerHTML = rekod[4]?
+                dataNama + '</br>' + panduanLink
+                : dataNama;
             
             // Gabungkan bahagian-bahagian alamat yang tidak kosong dengan pemisah <br>.
             lajurAlamat.innerHTML = [rekod[5], rekod[6], rekod[7]].filter(Boolean).join('</br>');
