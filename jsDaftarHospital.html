@@ -158,6 +158,8 @@
 
         // Set jenis operasi kepada "baru" untuk fungsi hantar()
         ambil("butangHantar").dataset.hospital = "baru";
+        ambil("butangHantar").dataset.ubat = "";
+        ambil("butangHantar").dataset.idHospital = "";
     }
 
     
@@ -262,6 +264,7 @@
         // 1. Tentukan jenis urusan (daftar/kemaskini)
         let jenisUrusan = butangIni.dataset.hospital;  // "baru" atau "lama"
         let idHospital = butangIni.dataset.idHospital;  // Undefined untuk hospital baru
+        let ubat = butangIni.dataset.ubat;  // Hash kunci sedia ada dari GS
 
         // 2. Kumpulkan data dari borang
         let namaHospital = ambil("namaHospital").value;
@@ -277,27 +280,24 @@
         let kunci = ambil("Kunci").value;
 
         // 3. Susun data untuk Google Sheets
-        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
-        
-        // 4. Proses berdasarkan jenis urusan
-        if (jenisUrusan == "lama") {
-            // Kemaskini data lama
-            let ubat = butangIni.dataset.ubat;  // Hash kunci sedia ada dari GS
+        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
 
-            makanCerna(kunci).then((makanan) => {
+        // 4. Proses berdasarkan jenis urusan
+        makanCerna(kunci).then(makanan => {
+            if (jenisUrusan == "lama") {
                 if (ubat == makanan) {  // Bandingkan hash kunci input vs hash sedia ada
                     resetUI();
                     google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
-                } else { alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
-            });
-        } else if (jenisUrusan == "baru") {
-            // Daftar hospital baru
-            resetUI();
-            makanCerna(kunci).then((makanan) => {
-                let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, tarikh];
+                    ambil("cariHospital").value = namaHospital;  // Paparkan hospital terlibat sahaja
+                } else {alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
+            } else if (jenisUrusan == "baru") {
+                // Daftar hospital baru
+                resetUI();
+                let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
                 google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
-            });
-        }
+                ambil("cariHospital").value = namaHospital;  // Paparkan hospital terlibat sahaja
+            }
+        });
 
         // Fungsi bantu untuk reset UI
         function resetUI() {

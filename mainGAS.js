@@ -28,6 +28,7 @@ const Alamat = {
  */
 function doGet(e) {
     Alamat.jalan("daftarHospital", binaLamanDaftarHospital);
+    Alamat.jalan("daftarUjian", binaLamanDaftarUjian);
 
     if (e.parameter.laman) {
         return Alamat[e.parameter.laman]();
@@ -114,6 +115,11 @@ function daftarHospitalBaru(dataHospitalBaru) {
  */
 function merangkumiFileJS(namaFile) {
     return HtmlService.createHtmlOutputFromFile(namaFile).getContent();
+}
+
+
+function binaLamanDaftarUjian() {
+    return binaLaman("daftarUjian");
 }
 
 
