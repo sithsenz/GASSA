@@ -17,21 +17,29 @@
             <input class="form-control" placeholder="Nama Ujian" id="cariUjian" value="">
                 <label for="cariUjian">Cari dalam nama hospital dan ujian</label>
         </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary btn-lg" onclick="cariIDhospital()" id="butangCariIDhospital">ID Hospital</button>
+        </div>
+        <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary btn-lg" onclick="cariNamaHospital()" id="butangCariHospital">Nama Hospital</button>
+        </div>
         <div class="col-auto me-auto">
-            <button type="button" class="btn btn-outline-primary btn-lg" onclick="binaJadualDaftarUjian()" id="butangCariUjian">Cari</button>
+            <button type="button" class="btn btn-outline-primary btn-lg" onclick="binaJadualDaftarUjian()" id="butangCariUjian">Nama Ujian</button>
         </div>
         <div class="col-auto">
             <button type="button" class="btn btn-outline-success btn-lg" data-bs-toggle="modal" data-bs-target="#modalDaftarUjian" onclick="daftarUjian()">Daftar</button>
         </div>
     </div>
+    <div>
+        <p id="notaCari" class="text-primary">Daripada 50 keputusan carian, 10 dipilih secara rawak dan dipaparkan di bawah. Sila perincikan terma carian.</p>
+    </div>
     <table class="table table-hover text-center align-middle">
         <thead class="table-primary">
             <tr>
-                <th scope="col">Nama</th>
-                <th scope="col">Ujian</th>
-                <th scope="col">Program EQA</th>
-                <th scope="col">LTAT (hari)</th>
-                <th scope="col">Program EQA</th>
+                <th scope="col">Nama Makmal</th>
+                <th scope="col">Nama Ujian</th>
+                <th scope="col">Program Kualiti</th>
+                <th scope="col">Status Ujian</th>
                 <th scope="col">Tarikh Dikemaskini</th>
             </tr>
         </thead>
@@ -49,7 +57,11 @@
                     <div class="row g-2">
                         <div class="input-group">
                             <div class="form-floating">
-                                <input class="form-control" placeholder="Nama Hospital" id="namaHospital">
+                                <input class="form-control" placeholder="Nama Hospital" id="IDhospital">
+                                    <label for="IDhospital">ID Hospital</label>
+                            </div>
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Nama Hospital" id="namaHospital" disabled>
                                     <label for="namaHospital">Nama Hospital</label>
                             </div>
                         </div>
@@ -57,38 +69,18 @@
                     <div class="row g-2">
                         <div class="input-group">
                             <div class="form-floating">
-                                <input class="form-control" placeholder="Laman Sesawang Hospital" id="wwwHospital">
-                                    <label for="wwwHospital">Laman Sesawang Hospital</label>
+                                <input class="form-control" placeholder="EQA" id="EQA">
+                                    <label for="EQA">Program EQA</label>
                             </div>
                             <div class="form-floating">
-                                <input class="form-control" placeholder="Pautan Buku Panduan" id="wwwPanduan">
-                                    <label for="wwwPanduan">Pautan Buku Panduan</label>
+                                <input class="form-control" placeholder="LTAT" id="LTAT">
+                                    <label for="LTAT">LTAT</label>
+                            </div>
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Status Ujian" id="statusUjian">
+                                    <label for="statusUjian">Status Ujian</label>
                             </div>
                         </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="input-group">
-                            <div class="form-floating">
-                                <input class="form-control" placeholder="Alamat" id="alamat">
-                                    <label for="alamat">Alamat</label>
-                            </div>
-                            <div class="form-floating">
-                                <input class="form-control" placeholder="Emel" id="emel">
-                                    <label for="emel">Emel</label>
-                            </div>
-                            <div class="form-floating">
-                                <input class="form-control" placeholder="Tel Pejabat" id="telPejabat">
-                                    <label for="telPejabat">Tel Pejabat</label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <input type="checkbox" class="btn-check" id="msiso" autocomplete="off">
-                        <label class="btn btn-outline-success col" for="msiso">MS ISO 15189</label>
-                        <input type="checkbox" class="btn-check" id="msqh" autocomplete="off">
-                        <label class="btn btn-outline-success col" for="msqh">MSQH</label>
-                        <input type="checkbox" class="btn-check" id="phlas" autocomplete="off">
-                        <label class="btn btn-outline-success col" for="phlas">PHLAS</label>
                     </div>
                     <div class="row g-2">
                         <div class="input-group">
@@ -96,12 +88,6 @@
                                 <input class="form-control" placeholder="Kunci" id="Kunci">
                                     <label for="Kunci">Kunci</label>
                             </div>
-                        </div>
-                        <div id="notaKunci">
-                            <p class="text-danger">Kunci anda adalah rahsia penting. Jangan kongsi kunci ini!</br>
-                            Ia diperlukan untuk pengesahan aktiviti kritikal dalam sistem.</br>
-                            Kunci ini sensitif huruf dan ruang kosong akan disisihkan secara automatik.</br>
-                            Gunakan huruf/nombor/simbol biasa.</p>
                         </div>
                     </div>
                 </div>
