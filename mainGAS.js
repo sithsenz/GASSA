@@ -60,6 +60,20 @@ function ambilData(hospital, ujian, perjanjian) {
         dataDataHospital.shift();
 
         return dataDataHospital;
+    } else if (bitmask == 3) {
+        let dataHospital = [];
+        let dataUjian = "kkk";
+
+        let dataDataHospital = lembaranDataHospital.getRange("A1").getDataRegion().getDisplayValues();
+        dataDataHospital.shift();
+        dataDataHospital.forEach(rekod => {
+            if (rekod[11] == "Aktif") {
+                let data = [rekod[0], rekod[1], rekod[2]];
+                dataHospital.push(data);
+            }
+        });
+
+        return [dataHospital, dataUjian];
     }
 }
 

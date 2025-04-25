@@ -1,3 +1,18 @@
 <script>
-    
+    let dataHospital;
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        google.script.run.withSuccessHandler(simpanData).ambilData(1, 2, 0);
+    })
+
+
+    function simpanData(dataDariGS) {
+        dataHospital = dataDariGS[0];
+        console.table(dataHospital);
+        dataUjian = dataDariGS[1];
+        console.log(dataUjian);
+    }
+
+
 </script>
