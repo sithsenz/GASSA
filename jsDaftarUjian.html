@@ -3,15 +3,13 @@
 
 
     document.addEventListener('DOMContentLoaded', () => {
-        google.script.run.withSuccessHandler(simpanData).ambilData(1, 2, 0);
+        google.script.run.withSuccessHandler(simpanData).ambilData(3);
     })
 
 
     function simpanData(dataDariGS) {
-        dataHospital = dataDariGS[0];
+        dataHospital = dataDariGS;
         console.table(dataHospital);
-        dataUjian = dataDariGS[1];
-        console.log(dataUjian);
     }
 
 

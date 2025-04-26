@@ -36,6 +36,7 @@ function doGet(e) {
 }
 
 
+// Tugasan: Kaji semula JSDoc dan komen fungsi ini
 /**
  * Mengambil data dari Google Sheets berdasarkan kombinasi parameter bitmask.
  * 
@@ -53,27 +54,38 @@ function doGet(e) {
  *   - Total 5: Hospital + Perjanjian (1+4)
  * 
  */
-function ambilData(hospital, ujian, perjanjian) {
-    bitmask = hospital + ujian + perjanjian;
+function ambilData(bitmask, carian=null) {
+    function ambilSemua(lembaran) {
+        let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
+        data.shift();
+
+        return data;
+    }
+
+    function ambilTerpilih(enumPilihan) {
+        let dataTerpilih = [];
+
+        if (enumPilihan == 1) {
+            let data = ambilSemua(lembaranDataHospital);
+            data.forEach(rekod => {
+                if (rekod[11] == "Aktif") {
+                    let d = [rekod[0], rekod[1], rekod[2]];
+                    dataTerpilih.push(d);
+                }
+            });
+        }
+
+        return dataTerpilih;
+    }
+
     if (bitmask == 1) {
-        let dataDataHospital = lembaranDataHospital.getRange("A1").getDataRegion().getDisplayValues();
-        dataDataHospital.shift();
+        let dataHospital = ambilSemua(lembaranDataHospital);
 
-        return dataDataHospital;
+        return dataHospital;
     } else if (bitmask == 3) {
-        let dataHospital = [];
-        let dataUjian = "kkk";
+        let dataHospital = ambilTerpilih(1);
 
-        let dataDataHospital = lembaranDataHospital.getRange("A1").getDataRegion().getDisplayValues();
-        dataDataHospital.shift();
-        dataDataHospital.forEach(rekod => {
-            if (rekod[11] == "Aktif") {
-                let data = [rekod[0], rekod[1], rekod[2]];
-                dataHospital.push(data);
-            }
-        });
-
-        return [dataHospital, dataUjian];
+        return dataHospital;
     }
 }
 
