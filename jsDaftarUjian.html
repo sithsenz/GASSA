@@ -1,16 +1,79 @@
 <script>
     let dataHospital;
+    let dataHospitalTerpilih;
+
+    const tunggu = "... Sila tunggu sebentar ...";
 
 
     document.addEventListener('DOMContentLoaded', () => {
+        ambil("nota").innerHTML = tunggu;
         google.script.run.withSuccessHandler(simpanData).ambilData(3);
     })
+
+
+    function cariIDhospital() {
+        ambil("nota").innerHTML = tunggu;
+        let idHospital = ambil("cari").value;
+        console.log([idHospital]);
+
+        let dataH = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+        if (dataH.length == 1) {
+            dataHospitalTerpilih = dataH;
+            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(11, [idHospital]);
+            console.table(dataHospitalTerpilih);
+        } else {
+            tungguAlert();
+        }
+    }
+
+
+    function cariNamaHospital(){
+        let idHospital = [];
+        ambil("nota").innerHTML = tunggu;
+        let carian = ambil("cari").value.toLowerCase();
+        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan);
+
+        let dataH = dataHospital.filter(hospital => {
+            let nama = hospital[2].toLowerCase();
+
+            return carianPerkataan.every(perkataan => nama.includes(perkataan));
+        });
+
+        if (dataH.length > 0) {
+            dataHospitalTerpilih = dataH;
+
+            dataH.forEach(rekod => {idHospital.push(rekod[0])});
+            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(11, idHospital);
+
+            console.table(dataHospitalTerpilih);
+        } else {
+            tungguAlert();
+        }
+    }
+
+
+    function binaJadualCarian(dataDariGS) {
+        ambil("nota").innerHTML = "";
+        console.table(dataDariGS);
+    }
 
 
     function simpanData(dataDariGS) {
         dataHospital = dataDariGS;
         console.table(dataHospital);
+        ambil("nota").innerHTML = "";
     }
 
 
+    function tungguAlert() {
+        ambil("nota").innerHTML = "";
+        alert("Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza.");
+    }
+
+
+    // Dapatkan elemen dari DOM berdasarkan ID
+    function ambil(id) {
+        return document.getElementById(id);
+    }
 </script>

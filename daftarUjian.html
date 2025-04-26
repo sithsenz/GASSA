@@ -14,8 +14,8 @@
     </div>
     <div class="container-fluid row align-items-center mb-3">
         <div class="col-6 form-floating">
-            <input class="form-control" placeholder="Nama Ujian" id="cariUjian" value="">
-                <label for="cariUjian">Cari dalam nama hospital dan ujian</label>
+            <input class="form-control" placeholder="Nama Ujian" id="cari" value="">
+                <label for="cari">Cari ID Hospital, nama hospital atau nama ujian</label>
         </div>
         <div class="col-auto">
             <button type="button" class="btn btn-outline-primary btn-lg" onclick="cariIDhospital()" id="butangCariIDhospital">ID Hospital</button>
@@ -30,9 +30,7 @@
             <button type="button" class="btn btn-outline-success btn-lg" data-bs-toggle="modal" data-bs-target="#modalDaftarUjian" onclick="daftarUjian()">Daftar</button>
         </div>
     </div>
-    <div>
-        <p id="notaCari" class="text-primary">Daripada 50 keputusan carian, 10 dipilih secara rawak dan dipaparkan di bawah. Sila perincikan terma carian.</p>
-    </div>
+    <div><p id="nota" class="text-danger text-center"></p></div>
     <table class="table table-hover text-center align-middle">
         <thead class="table-primary">
             <tr>

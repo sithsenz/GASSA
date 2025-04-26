@@ -62,30 +62,28 @@ function ambilData(bitmask, carian=null) {
         return data;
     }
 
-    function ambilTerpilih(enumPilihan) {
-        let dataTerpilih = [];
-
-        if (enumPilihan == 1) {
-            let data = ambilSemua(lembaranDataHospital);
-            data.forEach(rekod => {
-                if (rekod[11] == "Aktif") {
-                    let d = [rekod[0], rekod[1], rekod[2]];
-                    dataTerpilih.push(d);
-                }
-            });
-        }
-
-        return dataTerpilih;
-    }
-
     if (bitmask == 1) {
         let dataHospital = ambilSemua(lembaranDataHospital);
 
         return dataHospital;
+
     } else if (bitmask == 3) {
-        let dataHospital = ambilTerpilih(1);
+        let dataHospital = [];
+        let data = ambilSemua(lembaranDataHospital);
+        data.forEach(rekod => {
+            if (rekod[11] == "Aktif") {
+                dataHospital.push([rekod[0], rekod[1], rekod[2]]);
+            }
+        });
 
         return dataHospital;
+
+    } else if (bitmask == 11) {
+        const carianID = new Set(carian);
+
+        let dataUjian = ambilSemua(lembaranDataUjian).filter(rekod => {return carianID.has(rekod[1])});
+
+        return dataUjian;
     }
 }
 
@@ -197,8 +195,6 @@ const lembaranDataHospital = hamparanDataHospital.getSheetByName("Sheet1");
 
 //Data Ujian
 const lembaranDataUjian = hamparanDataUjian.getSheetByName("Sheet1");
-let dataDataUjian = lembaranDataUjian.getRange("A1").getDataRegion().getDisplayValues();
-dataDataUjian.shift();
 
 //Data Perjanjian
 const lembaranDataPerjanjian = hamparanDataPerjanjian.getSheetByName("Sheet1");
