@@ -54,7 +54,7 @@ function doGet(e) {
  *   - Total 5: Hospital + Perjanjian (1+4)
  * 
  */
-function ambilData(bitmask, carian=null) {
+function ambilData(butiran, carian=null) {
     function ambilSemua(lembaran) {
         let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
         data.shift();
@@ -62,12 +62,12 @@ function ambilData(bitmask, carian=null) {
         return data;
     }
 
-    if (bitmask == 1) {
+    if (butiran == 1) {  // semua data hospital
         let dataHospital = ambilSemua(lembaranDataHospital);
 
         return dataHospital;
 
-    } else if (bitmask == 3) {
+    } else if (butiran == 2) {  // data hospital lajur terpilih
         let dataHospital = [];
         let data = ambilSemua(lembaranDataHospital);
         data.forEach(rekod => {
@@ -78,13 +78,61 @@ function ambilData(bitmask, carian=null) {
 
         return dataHospital;
 
-    } else if (bitmask == 11) {
+    } else if (butiran == 3) {  // data ujian bagi ID hospital terpilih
+        let dataUjian = [];
+        let bilanganID = carian.length;
         const carianID = new Set(carian);
 
-        let dataUjian = ambilSemua(lembaranDataUjian).filter(rekod => {return carianID.has(rekod[1])});
+        let dataU = ambilSemua(lembaranDataUjian).filter(rekod => {return carianID.has(rekod[1])});
+
+        if (bilanganID == 1) {
+            dataUjian = dataU;
+
+        } else if (bilanganID > 1) {
+            let [penokok, baki] = bahagiBaki(dataU.length, 100);
+
+            let pemula = Math.floor(Math.random() * baki);
+
+            for (let i=pemula; i<dataU.length; i+=penokok) {
+                dataUjian.push(dataU[i]);
+            }
+        }
+
+        return dataUjian;
+
+    } else if (butiran == 4) { // data ujian bagi carian yang muncul dalam nama ujian
+        let dataUjian = [];
+        let dataU = ambilSemua(lembaranDataUjian).filter(hospital => {
+            let namaUjian = hospital[2].toLowerCase();
+
+            return carian.every(perkatan => namaUjian.includes(perkatan));
+        });
+
+        if (dataU.length <= 0) {
+            return "Tiada rekod sepadan dijumpai";
+
+        } else if (dataU.length <= 100) {
+            dataUjian = dataU;
+        
+        } else if (dataU.length > 100) {
+            let [penokok, baki] = bahagiBaki(dataU.length, 100);
+            let pemula = Math.floor(Math.random() * baki);
+
+            for (let i=pemula; i<dataU.length; i+=penokok) {
+                dataUjian.push(dataU[i]);
+            }
+        }
 
         return dataUjian;
     }
+}
+
+
+function bahagiBaki(pengangka, penyebut) {
+    let nomborBulat = Math.floor(pengangka / penyebut);
+    let baki = pengangka % penyebut;
+
+    return [nomborBulat, baki];
 }
 
 

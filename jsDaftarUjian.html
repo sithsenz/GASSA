@@ -3,11 +3,13 @@
     let dataHospitalTerpilih;
 
     const tunggu = "... Sila tunggu sebentar ...";
+    const carianRawak = "Carian anda menjumpai banyak rekod.\n Untuk prestasi terbaik, kami memaparkan ~100 rekod rawak sahaja.\n Sila perincikan carian untuk hasil lebih tepat."
+    const tiadaRekod = "Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza."
 
 
     document.addEventListener('DOMContentLoaded', () => {
         ambil("nota").innerHTML = tunggu;
-        google.script.run.withSuccessHandler(simpanData).ambilData(3);
+        google.script.run.withSuccessHandler(simpanData).ambilData(2);
     })
 
 
@@ -20,7 +22,7 @@
 
         if (dataH.length == 1) {
             dataHospitalTerpilih = dataH;
-            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(11, [idHospital]);
+            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(3, [idHospital]);
             console.table(dataHospitalTerpilih);
         } else {
             tungguAlert();
@@ -28,7 +30,7 @@
     }
 
 
-    function cariNamaHospital(){
+    function cariNamaHospital() {
         let idHospital = [];
         ambil("nota").innerHTML = tunggu;
         let carian = ambil("cari").value.toLowerCase();
@@ -44,7 +46,7 @@
             dataHospitalTerpilih = dataH;
 
             dataH.forEach(rekod => {idHospital.push(rekod[0])});
-            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(11, idHospital);
+            google.script.run.withSuccessHandler(binaJadualCarian).ambilData(3, idHospital);
 
             console.table(dataHospitalTerpilih);
         } else {
@@ -53,8 +55,29 @@
     }
 
 
+    function cariNamaUjian() {
+        ambil("nota").innerHTML = tunggu;
+        dataHospitalTerpilih = dataHospital;
+        let carian = ambil("cari").value.toLowerCase();
+        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan);
+
+        google.script.run.withSuccessHandler(binaJadualCarian).ambilData(4, carianPerkataan);
+
+        console.log(carianPerkataan);
+    }
+
+
     function binaJadualCarian(dataDariGS) {
-        ambil("nota").innerHTML = "";
+        if (dataHospitalTerpilih.length > 1) {
+
+            if (dataDariGS == "Tiada rekod sepadan dijumpai") {
+                tungguAlert();
+            }
+
+            ambil("nota").innerHTML = carianRawak;
+        } else if (dataHospitalTerpilih.length == 1) {
+            ambil("nota").innerHTML = "";
+        }
         console.table(dataDariGS);
     }
 
@@ -68,7 +91,7 @@
 
     function tungguAlert() {
         ambil("nota").innerHTML = "";
-        alert("Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza.");
+        alert(tiadaRekod);
     }
 
 
