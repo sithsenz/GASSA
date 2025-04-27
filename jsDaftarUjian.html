@@ -149,9 +149,34 @@
 
         ambil("IDhospital").disabled = false;
 
-        ambil("butangHantar").dataset.ubat = "";
+        ambil("butangHantar").dataset.ubat = " ";
         ambil("butangHantar").dataset.idUjian = "";
         ambil("butangHantar").dataset.urusan = "baru";
+        ambil("butangHantar").disabled = true;
+    }
+
+
+    function paparNamaHospital() {
+        let idHospital = ambil("IDhospital").value;
+
+        if (idHospital.length < 6) {
+            ambil("namaHospital").value = "";
+            ambil("butangHantar").disabled = true;
+            ambil("butangHantar").dataset.ubat = " ";
+        } else {
+            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+            if (hospital.length == 1) {
+                ambil("namaHospital").value = hospital[0][2];
+                ambil("butangHantar").disabled = false;
+                ambil("butangHantar").dataset.ubat = hospital[0][1];
+
+            } else {
+                ambil("namaHospital").value = "ID Hospital tidak sah";
+                ambil("butangHantar").disabled = true;
+                ambil("butangHantar").dataset.ubat = " ";
+            }
+        }
     }
 
 
@@ -176,6 +201,16 @@
         ambil("butangHantar").dataset.ubat = ubat;
         ambil("butangHantar").dataset.idUjian = idUjian;
         ambil("butangHantar").dataset.urusan = "lama";
+    }
+
+
+    async function makanCerna(ubat) {
+        let ubatKod = new TextEncoder().encode(ubat.trim());
+        let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
+        let ubatArray = Array.from(new Uint8Array(ubatBuffer));
+        let ubatHex = ubatArray.map((b)=>b.toString(16).padStart(2, "0")).join("");
+
+        return ubatHex;
     }
 
 
