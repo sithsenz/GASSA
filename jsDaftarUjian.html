@@ -149,7 +149,7 @@
 
         ambil("IDhospital").disabled = false;
 
-        ambil("butangHantar").dataset.ubat = " ";
+        ambil("butangHantar").dataset.ubat = "";
         ambil("butangHantar").dataset.idUjian = "";
         ambil("butangHantar").dataset.urusan = "baru";
         ambil("butangHantar").disabled = true;
@@ -162,7 +162,7 @@
         if (idHospital.length < 6) {
             ambil("namaHospital").value = "";
             ambil("butangHantar").disabled = true;
-            ambil("butangHantar").dataset.ubat = " ";
+            ambil("butangHantar").dataset.ubat = "";
         } else {
             let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
 
@@ -174,7 +174,7 @@
             } else {
                 ambil("namaHospital").value = "ID Hospital tidak sah";
                 ambil("butangHantar").disabled = true;
-                ambil("butangHantar").dataset.ubat = " ";
+                ambil("butangHantar").dataset.ubat = "";
             }
         }
     }
@@ -215,7 +215,32 @@
 
 
     function hantar(butangIni) {
+        let urusan = butangIni.dataset.urusan;
+        let idUjian = butangIni.dataset.idUjian;
+        let ubat = butangIni.dataset.ubat;
 
+        let idHospital = ambil("IDhospital").value;
+        let namaUjian = ambil("namaUjian").value;
+        let EQA = ambil("EQA").value;
+        let LTAT = ambil("LTAT").value;
+        let statusUjian = ambil("statusUjian").value;
+        let tarikh = new Date().toISOString().split("T")[0];
+        let kunci = ambil("Kunci").value;
+
+        let dataBaru = [idUjian, idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
+
+        makanCerna(kunci).then(makanan => {
+            if (ubat != makanan) {
+                alert("Anda tiada kebenaran untuk mengubah data ujian hospital ini.");
+            }
+        });
+
+
+        // Fungsi bantu untuk reset UI
+        function resetUI() {
+            ambil("badan-jadual-daftar-ujian").innerHTML = "";  // Kosongkan jadual
+            ambil("butangX").click();  // Tutup modal
+        }
     }
 
 
