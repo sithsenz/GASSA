@@ -1,9 +1,10 @@
 <script>
     let dataHospital;
     let dataHospitalTerpilih;
+    let dataUjian;
 
     const tunggu = "... Sila tunggu sebentar ...";
-    const carianRawak = "Carian anda menjumpai banyak rekod.\n Untuk prestasi terbaik, kami memaparkan ~100 rekod rawak sahaja.\n Sila perincikan carian untuk hasil lebih tepat."
+    const carianRawak = "Carian anda menjumpai banyak rekod.</br> Untuk prestasi terbaik, kami memaparkan ~100 rekod rawak sahaja.</br> Sila perincikan carian untuk hasil lebih tepat."
     const tiadaRekod = "Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza."
 
 
@@ -63,22 +64,123 @@
 
         google.script.run.withSuccessHandler(binaJadualCarian).ambilData(4, carianPerkataan);
 
+        console.table(dataHospitalTerpilih);
         console.log(carianPerkataan);
     }
 
 
     function binaJadualCarian(dataDariGS) {
-        if (dataHospitalTerpilih.length > 1) {
-
-            if (dataDariGS == "Tiada rekod sepadan dijumpai") {
+        if (dataDariGS == "Tiada rekod sepadan dijumpai") {
                 tungguAlert();
+            
+        } else {
+            if (dataHospitalTerpilih.length == 1) {
+            ambil("nota").innerHTML = "";
+        
+            } else if (dataHospitalTerpilih.length > 1) {
+            ambil("nota").innerHTML = carianRawak;
             }
 
-            ambil("nota").innerHTML = carianRawak;
-        } else if (dataHospitalTerpilih.length == 1) {
-            ambil("nota").innerHTML = "";
+            dataUjian = dataDariGS;
+
+            const badanJadual = ambil("badan-jadual-daftar-ujian");
+            badanJadual.innerHTML = "";
+
+            for (rekod of dataUjian) {
+                let baris = buat("tr");
+
+                let lajurMakmal = buat("td");
+                let lajurUjian = buat("td");
+                let lajurKualiti = buat("td");
+                let lajurStatus = buat("td");
+                let lajurTarikh = buat("td");
+
+                let dataHosp = dataHospitalTerpilih.filter(hosp => {return hosp[0] == rekod[1]});
+
+                if (dataHosp.length == 0) {
+                    continue;
+                }
+                
+                lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[0][2];
+                
+                lajurUjian.innerHTML = rekod[2];
+
+                lajurKualiti.innerHTML = rekod[3] + "</br> [LTAT: " + rekod[4] + "]";
+
+                lajurStatus.innerHTML = rekod[5];
+
+                let butangUbah = buat("button");
+                butangUbah.innerHTML = "Ubah";
+                butangUbah.dataset.idUjian = rekod[0];
+                butangUbah.dataset.ubat = dataHosp[0][1];
+                butangUbah.setAttribute("type", "button");
+                butangUbah.setAttribute("class", "btn btn-outline-warning");
+                butangUbah.setAttribute("data-bs-toggle", "modal");
+                butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
+                butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
+
+                lajurTarikh.innerHTML = rekod[6] + "</br>";
+                lajurTarikh.appendChild(butangUbah);
+
+                baris.appendChild(lajurMakmal);
+                baris.appendChild(lajurUjian);
+                baris.appendChild(lajurKualiti);
+                baris.appendChild(lajurStatus);
+                baris.appendChild(lajurTarikh);
+
+                if (rekod[5] == "Digantung") {
+                    baris.classList.add("table-danger");
+                }
+
+                badanJadual.appendChild(baris);
+            };
         }
+        
         console.table(dataDariGS);
+    }
+
+
+    function daftarUjian() {
+        ambil("tajukModal").innerHTML = "Pendaftaran Ujian Baharu";
+
+        // Kosongkan semua input
+        let butiranLama = ambil("modalDaftarUjian").querySelectorAll("input");
+        butiranLama.forEach((data) => data.value = "");
+
+        ambil("IDhospital").disabled = false;
+
+        ambil("butangHantar").dataset.ubat = "";
+        ambil("butangHantar").dataset.idUjian = "";
+        ambil("butangHantar").dataset.urusan = "baru";
+    }
+
+
+    function paparkanDataUjian(butangIni) {
+        let ubat = butangIni.dataset.ubat;
+        let idUjian = butangIni.dataset.idUjian;
+
+        let rekodUjian = dataUjian.filter(rekod => {return rekod[0] == idUjian})[0];
+        let rekodHospital = dataHospital.filter(rekod => {return rekod[0] == rekodUjian[1]})[0];
+
+        ambil("tajukModal").innerHTML = "Kemaskini Data Ujian";
+
+        ambil("IDhospital").disabled = true;
+        ambil("IDhospital").value = rekodUjian[1];
+        ambil("namaHospital").value = rekodHospital[2];
+        ambil("namaUjian").value = rekodUjian[2];
+        ambil("EQA").value = rekodUjian[3];
+        ambil("LTAT").value = rekodUjian[4];
+        ambil("statusUjian").value = rekodUjian[5];
+        ambil("Kunci").value = "";
+
+        ambil("butangHantar").dataset.ubat = ubat;
+        ambil("butangHantar").dataset.idUjian = idUjian;
+        ambil("butangHantar").dataset.urusan = "lama";
+    }
+
+
+    function hantar(butangIni) {
+
     }
 
 
@@ -98,5 +200,11 @@
     // Dapatkan elemen dari DOM berdasarkan ID
     function ambil(id) {
         return document.getElementById(id);
+    }
+
+
+    // Cipta dan kembalikan elemen HTML berdasarkan tag
+    function buat(unsur) {
+        return document.createElement(unsur);
     }
 </script>
