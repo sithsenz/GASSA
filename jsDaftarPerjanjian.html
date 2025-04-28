@@ -1,0 +1,98 @@
+<script>
+    let dataHospital;
+
+    const tunggu = "... Sila tunggu sebentar ...";
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ambil("nota").innerHTML = tunggu;
+        google.script.run.withSuccessHandler(simpanData).ambilData(2);
+    })
+
+
+    function binaJadualRujukan(dataDariGS) {
+        ambil("nota").innerHTML = "";
+        console.table(dataDariGS[0]);
+        console.table(dataDariGS[1]);
+    }
+
+
+    function paparPerjanjian() {
+        ambil("nota").innerHTML = tunggu;
+
+        let idHospital = ambil("idHospital").value;
+        let sebagai = ambil("hospitalSebagai").value;
+        let ubat = ambil("butangPapar").dataset.ubat;
+
+        resetLajurNamaMakmal();
+
+        let kunci = prompt("Sila masukkan kunci anda");
+
+        makanCerna(kunci).then(makanan => {
+            if (ubat != makanan) {
+                alert("Anda tiada kebenaran untuk melihat rekod perjanjian hospital ini.");
+                ambil("nota").innerHTML = "";
+
+            } else if (sebagai == "Merujuk") {
+                google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(5, idHospital);
+
+            } else if (sebagai == "Rujukan") {
+                google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(6, idHospital);
+            }
+        });
+    }
+
+
+    async function makanCerna(ubat) {
+        let ubatKod = new TextEncoder().encode(ubat.trim());
+        let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
+        let ubatArray = Array.from(new Uint8Array(ubatBuffer));
+        let ubatHex = ubatArray.map((b)=>b.toString(16).padStart(2, "0")).join("");
+
+        return ubatHex;
+    }
+
+
+    function paparNamaHospital() {
+        let idHospital = ambil("idHospital").value;
+
+        if (idHospital.length < 6) {
+            ambil("namaHospital").value = "";
+            ambil("butangPapar").dataset.ubat = "";
+            ambil("butangPapar").disabled = true;
+
+        } else {
+            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+            if (hospital.length == 1) {
+                ambil("namaHospital").value = hospital[0][2];
+                ambil("butangPapar").dataset.ubat = hospital[0][1];
+                ambil("butangPapar").disabled = false;
+            
+            } else {
+                ambil("namaHospital").value = "ID Hospital tidak sah";
+                ambil("butangPapar").dataset.ubat = "";
+                ambil("butangPapar").disabled = true;
+            }
+        }
+    }
+
+
+    function simpanData(dataDariGS) {
+        dataHospital = dataDariGS;
+        ambil("nota").innerHTML = "";
+    }
+
+
+    function resetLajurNamaMakmal() {
+        let namaLajurMakmal = ambil("namaLajurMakmal");
+        let hospitalSebagai = ambil("hospitalSebagai").value;
+        namaLajurMakmal.innerHTML = hospitalSebagai == "Merujuk"? "Nama Makmal Rujukan" : "Nama Makmal Merujuk";
+    }
+
+
+    // Dapatkan elemen dari DOM berdasarkan ID
+    function ambil(id) {
+        return document.getElementById(id);
+    }
+</script>

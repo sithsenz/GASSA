@@ -29,6 +29,7 @@ const Alamat = {
 function doGet(e) {
     Alamat.jalan("daftarHospital", binaLamanDaftarHospital);
     Alamat.jalan("daftarUjian", binaLamanDaftarUjian);
+    Alamat.jalan("daftarPerjanjian", binaLamanDaftarPerjanjian);
 
     if (e.parameter.laman) {
         return Alamat[e.parameter.laman]();
@@ -124,6 +125,45 @@ function ambilData(butiran, carian=null) {
         }
 
         return dataUjian;
+
+    } else if (butiran == 5) {  // data perjanjian bagi ID hospital merujuk yang terpilih
+        let dataJ = ambilSemua(lembaranDataPerjanjian).filter(rekod => {return rekod[1] == carian});
+
+        let senaraiUjian = [];
+
+        for (rekod of dataJ) {
+            senaraiUjian.push(rekod[2]);
+        }
+
+        const setIDujian = new Set(senaraiUjian);
+
+        let dataU = ambilSemua(lembaranDataUjian).filter(rekod => {return setIDujian.has(rekod[0])});
+
+        return [dataJ, dataU];
+    
+    } else if (butiran == 6) {  // data perjanjian bagi ID hospital rujukan yang terpilih
+        let dataUjian = ambilSemua(lembaranDataUjian).filter(rekod => {return rekod[1] == carian});
+        
+        let senaraiUjian = [];
+        let senaraiU = [];
+
+        for (rekod of dataUjian) {
+            senaraiUjian.push(rekod[0]);
+        }
+
+        const setIDujian = new Set(senaraiUjian);
+
+        let dataJ = ambilSemua(lembaranDataPerjanjian).filter(rekod => {return setIDujian.has(rekod[2])});
+
+        for (rekod of dataJ) {
+            senaraiU.push(rekod[2]);
+        }
+
+        const setIDu = new Set(senaraiU);
+
+        let dataU = dataUjian.filter(rekod => {return setIDu.has(rekod[0])});
+
+        return [dataJ, dataU];
     }
 }
 
@@ -262,6 +302,11 @@ function binaLamanDaftarUjian() {
  */
 function binaLamanDaftarHospital() {
     return binaLaman("daftarHospital");
+}
+
+
+function binaLamanDaftarPerjanjian() {
+    return binaLaman("daftarPerjanjian");
 }
 
 
