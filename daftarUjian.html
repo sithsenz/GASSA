@@ -34,6 +34,7 @@
         </div>
         <div class="col-auto">
             <button type="button" class="btn btn-outline-success btn-lg" data-bs-toggle="modal" data-bs-target="#modalDaftarUjian" onclick="daftarUjian()">Daftar</button>
+            <button type="button" class="btn btn-outline-success btn-lg" data-bs-toggle="modal" data-bs-target="#modalMohonPerjanjian">J</button>
         </div>
     </div>
     <div><p id="nota" class="text-danger text-center"></p></div>
@@ -49,7 +50,60 @@
         </thead>
         <tbody id="badan-jadual-daftar-ujian"></tbody>
     </table>
-    <!-- Modal -->
+    <!-- Modal mohon perjanjian -->
+    <div class="modal fade" id="modalMohonPerjanjian" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="tajukModalPerjanjian">Permohonan Perjanjian Perkhidmatan</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="butang-X"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="input-group">
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Nama Hospital Rujukan" id="namaHospitalRujukan" disabled>
+                                    <label for="namaHospitalRujukan">Nama Hospital Rujukan</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="input-group">
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Nama Ujian" id="namaUjianRujukan" disabled>
+                                    <label for="namaHospitalRujukan">Nama Ujian Rujukan</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="input-group">
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="ID Hospital Merujuk" id="IDhospitalMerujuk" onkeyup="paparNamaMerujuk()" type="text" maxlength="6" required>
+                                    <label for="IDhospitalMerujuk">ID Hospital Merujuk</label>
+                            </div>
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Nama Hospital Merujuk" id="namaHospitalMerujuk" disabled>
+                                    <label for="namaHospitalMerujuk">Nama Hospital Merujuk</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="input-group">
+                            <div class="form-floating">
+                                <input class="form-control" placeholder="Kunci" id="kunciMerujuk">
+                                    <label for="kunciMerujuk">Kunci</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" onclick="hantarPerjanjian(this)" id="butangHantarPerjanjian" disabled>Hantar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal daftar ujian -->
     <div class="modal fade" id="modalDaftarUjian" tabindex="-1">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
@@ -85,12 +139,15 @@
                                     <label for="EQA">Program EQA</label>
                             </div>
                             <div class="form-floating">
-                                <input class="form-control" placeholder="LTAT" id="LTAT" required>
-                                    <label for="LTAT">LTAT</label>
+                                <input type="number" min="0" max="366" class="form-control" placeholder="LTAT" id="LTAT" required>
+                                    <label for="LTAT">LTAT (hari bekerja)</label>
                             </div>
                             <div class="form-floating">
-                                <input class="form-control" placeholder="Status Ujian" id="statusUjian" required>
-                                    <label for="statusUjian">Status Ujian</label>
+                                <select name="statusUjian" id="statusUjian" class="form-control" required>
+                                    <option value="Aktif">Aktif</option>
+                                    <option value="Digantung">Digantung</option>
+                                </select>
+                                <label for="statusUjian">Status Ujian</label>
                             </div>
                         </div>
                     </div>

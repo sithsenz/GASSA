@@ -136,6 +136,30 @@ function bahagiBaki(pengangka, penyebut) {
 }
 
 
+function kemaskiniUjian(dataBaru) {
+    let idUjian = dataBaru[0];
+    let baris = Number(idUjian);
+    let idHospital = [dataBaru[1]];
+
+    for (let i=3; i<8; i++) {
+        lembaranDataUjian.getRange(baris, i).setValue(dataBaru[i-1]);
+    }
+
+    return ambilData(3, idHospital);
+}
+
+
+function daftarUjianBaru(dataUjianBaru) {
+    let idHospital = [dataUjianBaru[1]];
+
+    lembaranDataUjian.appendRow(dataUjianBaru);
+
+    lembaranDataUjian.getRange(2, 2, lembaranDataUjian.getLastRow()-1).setNumberFormat("000000");
+
+    return ambilData(3, idHospital);
+}
+
+
 /**
  * Kemaskini data hospital sedia ada dalam Google Sheets.
  * - Lajur 1: ID Hospital (diperlukan untuk mencari baris)
@@ -154,7 +178,7 @@ function kemaskiniHospital(dataBaru) {
         lembaranDataHospital.getRange(baris, i).setValue(dataBaru[i-2]);
     }
 
-    return ambilData(1, 0, 0);  // Kembalikan data terkini
+    return ambilData(1);  // Kembalikan data terkini
 }
 
 
@@ -171,7 +195,7 @@ function daftarHospitalBaru(dataHospitalBaru) {
     // Tambah rekod baru (auto isi ID di lajur 1)
     lembaranDataHospital.appendRow(dataHospitalBaru);
 
-    return ambilData(1, 0, 0);  // Kembalikan data terkini
+    return ambilData(1);  // Kembalikan data terkini
 }
 
 

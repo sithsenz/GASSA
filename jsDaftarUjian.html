@@ -119,6 +119,8 @@
                 butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
                 butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
 
+
+
                 lajurTarikh.innerHTML = rekod[6] + "</br>";
                 lajurTarikh.appendChild(butangUbah);
 
@@ -180,6 +182,30 @@
     }
 
 
+    function paparNamaMerujuk() {
+        let idHospital = ambil("IDhospitalMerujuk").value;
+
+        if (idHospital.length < 6) {
+            ambil("namaHospitalMerujuk").value = "";
+            ambil("butangHantarPerjanjian").disabled = true;
+            ambil("butangHantarPerjanjian").dataset.ubat = "";
+        } else {
+            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+            if (hospital.length == 1) {
+                ambil("namaHospitalMerujuk").value = hospital[0][2];
+                ambil("butangHantarPerjanjian").disabled = false;
+                ambil("butangHantarPerjanjian").dataset.ubat = hospital[0][1];
+
+            } else {
+                ambil("namaHospitalMerujuk").value = "ID Hospital tidak sah";
+                ambil("butangHantarPerjanjian").disabled = true;
+                ambil("butangHantarPerjanjian").dataset.ubat = "";
+            }
+        }
+    }
+
+
     function paparkanDataUjian(butangIni) {
         let ubat = butangIni.dataset.ubat;
         let idUjian = butangIni.dataset.idUjian;
@@ -227,17 +253,28 @@
         let tarikh = new Date().toISOString().split("T")[0];
         let kunci = ambil("Kunci").value;
 
-        let dataBaru = [idUjian, idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
-
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
                 alert("Anda tiada kebenaran untuk mengubah data ujian hospital ini.");
+
+            } else if (urusan == "lama") {
+                let dataBaru = [idUjian, idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
+                ambil("cari").value = idHospital;
+                resetUI();
+                google.script.run.withSuccessHandler(binaJadualCarian).kemaskiniUjian(dataBaru);
+
+            } else if (urusan == "baru") {
+                let dataUjianBaru = ["", idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
+                ambil("cari").value = idHospital;
+                resetUI();
+                google.script.run.withSuccessHandler(binaJadualCarian).daftarUjianBaru(dataUjianBaru);
             }
         });
 
 
         // Fungsi bantu untuk reset UI
         function resetUI() {
+            ambil("nota").innerHTML = tunggu;
             ambil("badan-jadual-daftar-ujian").innerHTML = "";  // Kosongkan jadual
             ambil("butangX").click();  // Tutup modal
         }
