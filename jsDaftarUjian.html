@@ -119,10 +119,21 @@
                 butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
                 butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
 
-
+                let butangMohon = buat("button");
+                butangMohon.innerHTML = "Mohon";
+                butangMohon.dataset.idUjian = rekod[0];
+                butangMohon.dataset.namaUjian = rekod[2];
+                butangMohon.dataset.namaHospital = dataHosp[0][2];
+                butangMohon.disabled = rekod[5]=="Aktif"? false : true;
+                butangMohon.setAttribute("type", "button");
+                butangMohon.setAttribute("class", "btn btn-outline-warning");
+                butangMohon.setAttribute("data-bs-toggle", "modal");
+                butangMohon.setAttribute("data-bs-target", "#modalMohonPerjanjian");
+                butangMohon.addEventListener("click", e => paparkanPermohonan(e.target));
 
                 lajurTarikh.innerHTML = rekod[6] + "</br>";
                 lajurTarikh.appendChild(butangUbah);
+                lajurTarikh.appendChild(butangMohon);
 
                 baris.appendChild(lajurMakmal);
                 baris.appendChild(lajurUjian);
@@ -184,23 +195,25 @@
 
     function paparNamaMerujuk() {
         let idHospital = ambil("IDhospitalMerujuk").value;
+        let namaHospitalRujukan = ambil("butangHantarPermohonan").dataset.namaHospital;
 
         if (idHospital.length < 6) {
             ambil("namaHospitalMerujuk").value = "";
-            ambil("butangHantarPerjanjian").disabled = true;
-            ambil("butangHantarPerjanjian").dataset.ubat = "";
+            ambil("butangHantarPermohonan").disabled = true;
+            ambil("butangHantarPermohonan").dataset.ubat = "";
+
         } else {
             let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
 
-            if (hospital.length == 1) {
+            if ((hospital.length == 1) && (hospital[0][2] != namaHospitalRujukan)) {
                 ambil("namaHospitalMerujuk").value = hospital[0][2];
-                ambil("butangHantarPerjanjian").disabled = false;
-                ambil("butangHantarPerjanjian").dataset.ubat = hospital[0][1];
+                ambil("butangHantarPermohonan").disabled = false;
+                ambil("butangHantarPermohonan").dataset.ubat = hospital[0][1];
 
             } else {
                 ambil("namaHospitalMerujuk").value = "ID Hospital tidak sah";
-                ambil("butangHantarPerjanjian").disabled = true;
-                ambil("butangHantarPerjanjian").dataset.ubat = "";
+                ambil("butangHantarPermohonan").disabled = true;
+                ambil("butangHantarPermohonan").dataset.ubat = "";
             }
         }
     }
@@ -227,6 +240,22 @@
         ambil("butangHantar").dataset.ubat = ubat;
         ambil("butangHantar").dataset.idUjian = idUjian;
         ambil("butangHantar").dataset.urusan = "lama";
+    }
+
+
+    function paparkanPermohonan(butangIni) {
+        let idUjian = butangIni.dataset.idUjian;
+        let namaUjian = butangIni.dataset.namaUjian;
+        let namaHospitalRujukan = butangIni.dataset.namaHospital;
+
+        ambil("namaHospitalRujukan").value = namaHospitalRujukan;
+        ambil("namaUjianRujukan").value = namaUjian;
+        ambil("IDhospitalMerujuk").value = "";
+        ambil("namaHospitalMerujuk").value = "";
+        ambil("kunciMerujuk").value = "";
+        ambil("butangHantarPermohonan").dataset.ubat = "";
+        ambil("butangHantarPermohonan").dataset.idUjian = idUjian;
+        ambil("butangHantarPermohonan").dataset.namaHospital = namaHospitalRujukan;
     }
 
 
@@ -277,6 +306,35 @@
             ambil("nota").innerHTML = tunggu;
             ambil("badan-jadual-daftar-ujian").innerHTML = "";  // Kosongkan jadual
             ambil("butangX").click();  // Tutup modal
+        }
+    }
+
+
+    function hantarPermohonan(butangIni) {
+        let idUjian = butangIni.dataset.idUjian;
+        let ubat = butangIni.dataset.ubat;
+
+        let IDhospitalMerujuk = ambil("IDhospitalMerujuk").value;
+        let kunci = ambil("kunciMerujuk").value;
+
+        makanCerna(kunci).then(makanan => {
+            if (ubat != makanan) {
+                alert("Anda tiada kebenaran untuk memohon Perjanjian Perkhidmatan.");
+
+            } else {
+                let data = ["", IDhospitalMerujuk, idUjian, "Permohonan"];
+                ambil("butang-X").click();
+                google.script.run.withSuccessHandler(maklumTerimaPermohonan).mohonPerjanjianBaru(data);
+            }
+        });
+    }
+
+
+    function maklumTerimaPermohonan(dataDariGS) {
+        if (dataDariGS == "Sudah ada") {
+            alert("Permohonan pernah dihantar sebelum ini. Sila semak.");
+        } else if (dataDariGS == "Permohonan diterima") {
+            alert("Permohonan diterima. Sila tunggu maklum balas daripada hospital rujukan.");
         }
     }
 

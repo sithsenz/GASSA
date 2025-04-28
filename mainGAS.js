@@ -153,8 +153,9 @@ function daftarUjianBaru(dataUjianBaru) {
     let idHospital = [dataUjianBaru[1]];
 
     lembaranDataUjian.appendRow(dataUjianBaru);
-
-    lembaranDataUjian.getRange(2, 2, lembaranDataUjian.getLastRow()-1).setNumberFormat("000000");
+    let jumlahBaris = lembaranDataUjian.getLastRow()-1;  // tidak termasuk baris tajuk
+    lembaranDataUjian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");
+    lembaranDataUjian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");
 
     return ambilData(3, idHospital);
 }
@@ -196,6 +197,38 @@ function daftarHospitalBaru(dataHospitalBaru) {
     lembaranDataHospital.appendRow(dataHospitalBaru);
 
     return ambilData(1);  // Kembalikan data terkini
+}
+
+
+function mohonPerjanjianBaru(data) {
+    function ambilSemua(lembaran) {
+        let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
+        data.shift();
+
+        return data;
+    }
+
+    let dataPerjanjian = ambilSemua(lembaranDataPerjanjian);
+
+    let rujukanSediaAda = [];
+
+    for (rekod of dataPerjanjian) {
+        if (rekod[1] == data[1]) {rujukanSediaAda.push(rekod[2]);}
+    }
+
+    const setRujukanSediaAda = new Set(rujukanSediaAda);
+
+    if (setRujukanSediaAda.has(data[2])) {
+        return "Sudah ada";
+    }
+
+    lembaranDataPerjanjian.appendRow(data);
+    let jumlahBaris = lembaranDataPerjanjian.getLastRow() - 1;  //tidak termasuk baris tajuk
+    lembaranDataPerjanjian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");
+    lembaranDataPerjanjian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");
+    lembaranDataPerjanjian.getRange(2, 3, jumlahBaris).setNumberFormat("000000");
+
+    return "Permohonan diterima";
 }
 
 
@@ -270,5 +303,3 @@ const lembaranDataUjian = hamparanDataUjian.getSheetByName("Sheet1");
 
 //Data Perjanjian
 const lembaranDataPerjanjian = hamparanDataPerjanjian.getSheetByName("Sheet1");
-let dataDataPerjanjian = lembaranDataPerjanjian.getRange("A1").getDataRegion().getDisplayValues();
-dataDataPerjanjian.shift();
