@@ -12,8 +12,54 @@
 
     function binaJadualRujukan(dataDariGS) {
         ambil("nota").innerHTML = "";
-        console.table(dataDariGS[0]);
-        console.table(dataDariGS[1]);
+
+        let dataPerjanjian = dataDariGS[0];
+        let dataUjian = dataDariGS[1];
+        let sebagai = dataDariGS[2];
+
+        let badanJadual = ambil("badan-jadual-perjanjian");
+        badanJadual.innerHTML = "";
+
+        for (rekod of dataPerjanjian) {
+            let baris = buat("tr");
+
+            let selMakmal = buat("td");
+            let selUjian = buat("td");
+            let selStatus = buat("td");
+            let selTarikh = buat("td");
+
+            let dataU = dataUjian.filter(ujian => {return ujian[0] == rekod[2]});
+            let hospitalRujukan = dataHospital.filter(hosp => {return hosp[0] == dataU[0][1]});
+            let hospitalMerujuk = dataHospital.filter(hosp => {return hosp[0] == rekod[1]});
+            let idHospital;
+            let namaHospital;
+
+            if (sebagai == "Merujuk") {
+                idHospital = dataU[0][1];
+                namaHospital = hospitalRujukan[0][2];
+
+            } else if (sebagai == "Rujukan") {
+                idHospital = rekod[1];
+                namaHospital = hospitalMerujuk[0][2];
+            }
+
+            selMakmal.innerHTML = idHospital + "</br>" + namaHospital;
+
+            let idUjian = rekod[2];
+            let namaUjian = dataU[0][2];
+            selUjian.innerHTML = idUjian + "</br>" + namaUjian;
+
+            selStatus.innerHTML = rekod[3];
+
+            selTarikh.innerHTML = rekod[4];
+
+            baris.appendChild(selMakmal);
+            baris.appendChild(selUjian);
+            baris.appendChild(selStatus);
+            baris.appendChild(selTarikh);
+
+            badanJadual.appendChild(baris);
+        }
     }
 
 
@@ -94,5 +140,11 @@
     // Dapatkan elemen dari DOM berdasarkan ID
     function ambil(id) {
         return document.getElementById(id);
+    }
+
+
+    // Cipta dan kembalikan elemen HTML berdasarkan tag
+    function buat(unsur) {
+        return document.createElement(unsur);
     }
 </script>

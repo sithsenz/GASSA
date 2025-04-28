@@ -139,7 +139,7 @@ function ambilData(butiran, carian=null) {
 
         let dataU = ambilSemua(lembaranDataUjian).filter(rekod => {return setIDujian.has(rekod[0])});
 
-        return [dataJ, dataU];
+        return [dataJ, dataU, "Merujuk"];
     
     } else if (butiran == 6) {  // data perjanjian bagi ID hospital rujukan yang terpilih
         let dataUjian = ambilSemua(lembaranDataUjian).filter(rekod => {return rekod[1] == carian});
@@ -163,7 +163,7 @@ function ambilData(butiran, carian=null) {
 
         let dataU = dataUjian.filter(rekod => {return setIDu.has(rekod[0])});
 
-        return [dataJ, dataU];
+        return [dataJ, dataU, "Rujukan"];
     }
 }
 
