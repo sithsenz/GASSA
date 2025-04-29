@@ -26,7 +26,45 @@
             let selMakmal = buat("td");
             let selUjian = buat("td");
             let selStatus = buat("td");
-            let selTarikh = buat("td");
+            let selTindakan = buat("td");
+
+            let kumpulanButangMerujuk = buat("div");
+            kumpulanButangMerujuk.classList.add("btn-group")
+            kumpulanButangMerujuk.setAttribute("role", "group");
+            let butangPermohonan = buat("button");
+            let butangPembaharuan = buat("button");
+            let butangPembatalan = buat("button");
+            butangPermohonan.setAttribute("type", "button");
+            butangPermohonan.classList.add("btn", "btn-outline-warning");
+            butangPermohonan.innerHTML = "Permohonan";
+            butangPembaharuan.setAttribute("type", "button");
+            butangPembaharuan.classList.add("btn", "btn-outline-warning");
+            butangPembaharuan.innerHTML = "Pembaharuan";
+            butangPembatalan.setAttribute("type", "button");
+            butangPembatalan.classList.add("btn", "btn-outline-warning");
+            butangPembatalan.innerHTML = "Pembatalan";
+            kumpulanButangMerujuk.appendChild(butangPermohonan);
+            kumpulanButangMerujuk.appendChild(butangPembaharuan);
+            kumpulanButangMerujuk.appendChild(butangPembatalan);
+
+            let kumpulanButangRujukan = buat("div");
+            kumpulanButangRujukan.classList.add("btn-group")
+            kumpulanButangRujukan.setAttribute("role", "group");
+            let butangLulus = buat("button");
+            let butangKajiSemula = buat("button");
+            let butangTangguh = buat("button");
+            butangLulus.setAttribute("type", "button");
+            butangLulus.classList.add("btn", "btn-outline-warning");
+            butangLulus.innerHTML = "Lulus";
+            butangKajiSemula.setAttribute("type", "button");
+            butangKajiSemula.classList.add("btn", "btn-outline-warning");
+            butangKajiSemula.innerHTML = "Kaji Semula";
+            butangTangguh.setAttribute("type", "button");
+            butangTangguh.classList.add("btn", "btn-outline-warning");
+            butangTangguh.innerHTML = "Tangguh";
+            kumpulanButangRujukan.appendChild(butangLulus);
+            kumpulanButangRujukan.appendChild(butangKajiSemula);
+            kumpulanButangRujukan.appendChild(butangTangguh);
 
             let dataU = dataUjian.filter(ujian => {return ujian[0] == rekod[2]});
             let hospitalRujukan = dataHospital.filter(hosp => {return hosp[0] == dataU[0][1]});
@@ -49,14 +87,15 @@
             let namaUjian = dataU[0][2];
             selUjian.innerHTML = idUjian + "</br>" + namaUjian;
 
-            selStatus.innerHTML = rekod[3];
+            selStatus.innerHTML = rekod[3] + "</br>" + rekod[4];
 
-            selTarikh.innerHTML = rekod[4];
+            selTindakan.appendChild(kumpulanButangMerujuk);
+            selTindakan.appendChild(kumpulanButangRujukan);
 
             baris.appendChild(selMakmal);
             baris.appendChild(selUjian);
             baris.appendChild(selStatus);
-            baris.appendChild(selTarikh);
+            baris.appendChild(selTindakan);
 
             badanJadual.appendChild(baris);
         }
