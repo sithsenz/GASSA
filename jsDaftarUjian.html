@@ -322,7 +322,7 @@
                 alert("Anda tiada kebenaran untuk memohon Perjanjian Perkhidmatan.");
 
             } else {
-                let data = ["", IDhospitalMerujuk, idUjian, "Permohonan"];
+                let data = ["", IDhospitalMerujuk, idUjian, "Mohon"];
                 ambil("butang-X").click();
                 google.script.run.withSuccessHandler(maklumTerimaPermohonan).mohonPerjanjianBaru(data);
             }

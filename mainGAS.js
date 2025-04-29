@@ -168,6 +168,21 @@ function ambilData(butiran, carian=null) {
 }
 
 
+function kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai) {
+    let baris = Number(idPerjanjian);
+
+    lembaranDataPerjanjian.getRange(baris, 4).setValue(statusPerjanjian);
+    lembaranDataPerjanjian.getRange(baris, 5).setValue(tarikh);
+
+    if (sebagai == "Merujuk") {
+        return ambilData(5, idHospital);
+
+    } else if (sebagai == "Rujukan") {
+        return ambilData(6, idHospital);
+    }
+}
+
+
 function bahagiBaki(pengangka, penyebut) {
     let nomborBulat = Math.floor(pengangka / penyebut);
     let baki = pengangka % penyebut;

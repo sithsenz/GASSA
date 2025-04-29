@@ -11,6 +11,25 @@
 
 
     function binaJadualRujukan(dataDariGS) {
+        function ciptaTambahSifatButang(namaButang) {
+            let butang = buat("button");
+            butang.setAttribute("type", "button");
+            butang.classList.add("btn", "btn-outline-warning");
+            butang.dataset.idPerjanjian = rekod[0];
+            butang.addEventListener("click", e => hantarTindakan(e.target));
+            butang.innerHTML = namaButang;
+
+            return butang;
+        }
+
+        function ciptaKumpulanButang() {
+            let kumpulan = buat("div");
+            kumpulan.classList.add("btn-group", "btn-group-sm");
+            kumpulan.setAttribute("role", "group");
+
+            return kumpulan;
+        }
+
         ambil("nota").innerHTML = "";
 
         let dataPerjanjian = dataDariGS[0];
@@ -28,43 +47,17 @@
             let selStatus = buat("td");
             let selTindakan = buat("td");
 
-            let kumpulanButangMerujuk = buat("div");
-            kumpulanButangMerujuk.classList.add("btn-group")
-            kumpulanButangMerujuk.setAttribute("role", "group");
-            let butangPermohonan = buat("button");
-            let butangPembaharuan = buat("button");
-            let butangPembatalan = buat("button");
-            butangPermohonan.setAttribute("type", "button");
-            butangPermohonan.classList.add("btn", "btn-outline-warning");
-            butangPermohonan.innerHTML = "Permohonan";
-            butangPembaharuan.setAttribute("type", "button");
-            butangPembaharuan.classList.add("btn", "btn-outline-warning");
-            butangPembaharuan.innerHTML = "Pembaharuan";
-            butangPembatalan.setAttribute("type", "button");
-            butangPembatalan.classList.add("btn", "btn-outline-warning");
-            butangPembatalan.innerHTML = "Pembatalan";
-            kumpulanButangMerujuk.appendChild(butangPermohonan);
-            kumpulanButangMerujuk.appendChild(butangPembaharuan);
-            kumpulanButangMerujuk.appendChild(butangPembatalan);
+            let kumpulanButangMerujuk = ciptaKumpulanButang();
+            let butangMohon = ciptaTambahSifatButang("Mohon");
+            let butangBatal = ciptaTambahSifatButang("Batal");
+            kumpulanButangMerujuk.appendChild(butangMohon);
+            kumpulanButangMerujuk.appendChild(butangBatal);
 
-            let kumpulanButangRujukan = buat("div");
-            kumpulanButangRujukan.classList.add("btn-group")
-            kumpulanButangRujukan.setAttribute("role", "group");
-            let butangLulus = buat("button");
-            let butangKajiSemula = buat("button");
-            let butangTangguh = buat("button");
-            butangLulus.setAttribute("type", "button");
-            butangLulus.classList.add("btn", "btn-outline-warning");
-            butangLulus.innerHTML = "Lulus";
-            butangKajiSemula.setAttribute("type", "button");
-            butangKajiSemula.classList.add("btn", "btn-outline-warning");
-            butangKajiSemula.innerHTML = "Kaji Semula";
-            butangTangguh.setAttribute("type", "button");
-            butangTangguh.classList.add("btn", "btn-outline-warning");
-            butangTangguh.innerHTML = "Tangguh";
+            let kumpulanButangRujukan = ciptaKumpulanButang();
+            let butangLulus = ciptaTambahSifatButang("Lulus");
+            let butangTolak = ciptaTambahSifatButang("Tolak");
             kumpulanButangRujukan.appendChild(butangLulus);
-            kumpulanButangRujukan.appendChild(butangKajiSemula);
-            kumpulanButangRujukan.appendChild(butangTangguh);
+            kumpulanButangRujukan.appendChild(butangTolak);
 
             let dataU = dataUjian.filter(ujian => {return ujian[0] == rekod[2]});
             let hospitalRujukan = dataHospital.filter(hosp => {return hosp[0] == dataU[0][1]});
@@ -75,10 +68,12 @@
             if (sebagai == "Merujuk") {
                 idHospital = dataU[0][1];
                 namaHospital = hospitalRujukan[0][2];
+                kumpulanButangRujukan.classList.add("d-none");
 
             } else if (sebagai == "Rujukan") {
                 idHospital = rekod[1];
                 namaHospital = hospitalMerujuk[0][2];
+                kumpulanButangMerujuk.classList.add("d-none");
             }
 
             selMakmal.innerHTML = idHospital + "</br>" + namaHospital;
@@ -97,8 +92,40 @@
             baris.appendChild(selStatus);
             baris.appendChild(selTindakan);
 
+            if(rekod[3] == "Mohon") {
+                baris.classList.add("table-success");
+            } else if (rekod[3] == "Tolak") {
+                baris.classList.add("table-danger");
+            } else if (rekod[3] == "Batal") {
+                baris.classList.add("table-secondary");
+            }
+
             badanJadual.appendChild(baris);
         }
+    }
+
+
+    function hantarTindakan(butangIni) {
+        ambil("nota").innerHTML = tunggu;
+
+        let kunci = prompt("Sila masukkan kunci anda");
+
+        let idPerjanjian = butangIni.dataset.idPerjanjian;
+        let statusPerjanjian = butangIni.innerHTML;
+        let idHospital = ambil("idHospital").value;
+        let sebagai = ambil("hospitalSebagai").value;
+        let ubat = ambil("butangPapar").dataset.ubat;
+        let tarikh = new Date().toISOString().split("T")[0];
+
+        makanCerna(kunci).then(makanan => {
+            if (ubat != makanan) {
+                alert("Anda tiada kebenaran untuk mengubah status perjanjian hospital ini.");
+                ambil("nota").innerHTML = "";
+            
+            } else {
+                google.script.run.withSuccessHandler(binaJadualRujukan).kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai);
+            }
+        });
     }
 
 
