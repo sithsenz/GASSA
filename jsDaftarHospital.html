@@ -41,14 +41,11 @@
         const badanJadual = ambil("badan-jadual-daftar-hospital");
         badanJadual.innerHTML = "";
 
-        // Filter data hospital: hanya rekod dengan status "Aktif" (kolum 11)
-        let dataAktif = dataAsal.filter((h) => {return h[11] === "Aktif"});
-
         // Dapatkan nilai carian dan proses penapisan
         let carian = ambil("cariHospital").value.toLowerCase();
         const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan); // Asingkan setiap perkataan
         
-        const data = dataAktif.filter(h => {
+        const data = dataAsal.filter(h => {
             const nama = h[2].toLowerCase();
             const alamat = h[5].toLowerCase();
 
@@ -322,6 +319,7 @@
         bolehCerna();
         // Simpan data yang diterima dari Google Sheets ke dalam pembolehubah global.
         dataAsal = dataDariGS;
+        dataAsal.sort((a, b) => {return a[0] - b[0]});
 
         // Bina jadual pendaftaran hospital menggunakan data yang telah disimpan.
         binaJadualDaftarHospital();

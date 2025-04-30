@@ -66,7 +66,9 @@ function ambilData(butiran, carian=null) {
     if (butiran == 1) {  // semua data hospital
         let dataHospital = ambilSemua(lembaranDataHospital);
 
-        return dataHospital;
+        let dataAktif = dataHospital.filter(rekod => {return rekod[11] == "Aktif"});
+
+        return dataAktif;
 
     } else if (butiran == 2) {  // data hospital lajur terpilih
         let dataHospital = [];

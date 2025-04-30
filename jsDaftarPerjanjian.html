@@ -33,6 +33,15 @@
         ambil("nota").innerHTML = "";
 
         let dataPerjanjian = dataDariGS[0];
+
+        dataPerjanjian.sort((a, b) => {
+            if (a[1] == b[1]) {
+                return (a[3] < b[3])? 1 : (a[3] > b[3])? -1 : 0;
+            } else {
+                return (a[1] < b[1])? -1 : (a[1] > b[1])? 1 : 0;
+            }
+        });
+
         let dataUjian = dataDariGS[1];
         let sebagai = dataDariGS[2];
 

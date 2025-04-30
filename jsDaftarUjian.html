@@ -17,14 +17,12 @@
     function cariIDhospital() {
         ambil("nota").innerHTML = tunggu;
         let idHospital = ambil("cari").value;
-        console.log([idHospital]);
 
         let dataH = dataHospital.filter(rekod => {return rekod[0] == idHospital});
 
         if (dataH.length == 1) {
             dataHospitalTerpilih = dataH;
             google.script.run.withSuccessHandler(binaJadualCarian).ambilData(3, [idHospital]);
-            console.table(dataHospitalTerpilih);
         } else {
             tungguAlert();
         }
@@ -49,7 +47,6 @@
             dataH.forEach(rekod => {idHospital.push(rekod[0])});
             google.script.run.withSuccessHandler(binaJadualCarian).ambilData(3, idHospital);
 
-            console.table(dataHospitalTerpilih);
         } else {
             tungguAlert();
         }
@@ -63,9 +60,6 @@
         const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan);
 
         google.script.run.withSuccessHandler(binaJadualCarian).ambilData(4, carianPerkataan);
-
-        console.table(dataHospitalTerpilih);
-        console.log(carianPerkataan);
     }
 
 
@@ -82,6 +76,17 @@
             }
 
             dataUjian = dataDariGS;
+            dataUjian.sort((a, b) => {
+                if (a[1] == b[1]) {
+                    if (a[5] == b[5]) {
+                        return (a[2] < b[2])? -1 : (a[2] > b[2])? 1 : 0;
+                    } else {
+                        return (a[5] < b[5])? -1 : (a[5] > b[5])? 1 : 0;
+                    }
+                } else {
+                    return (a[1] < b[1])? -1 : (a[1] > b[1])? 1 : 0;
+                }
+            });
 
             const badanJadual = ambil("badan-jadual-daftar-ujian");
             badanJadual.innerHTML = "";
@@ -148,8 +153,6 @@
                 badanJadual.appendChild(baris);
             };
         }
-        
-        console.table(dataDariGS);
     }
 
 
@@ -341,7 +344,7 @@
 
     function simpanData(dataDariGS) {
         dataHospital = dataDariGS;
-        console.table(dataHospital);
+        dataHospital.sort((a, b) => {return a[0] - b[0]});
         ambil("nota").innerHTML = "";
     }
 
