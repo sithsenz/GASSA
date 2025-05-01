@@ -1,22 +1,125 @@
 <script>
-    let dataHospital;
-    let dataHospitalTerpilih;
-    let dataUjian;
+    /*==================
+    1. Pemalar & Tetapan
+    ==================*/
+    const STATUS_UJIAN = {
+        AKTIF: "Aktif",
+        TANGGUH: "Ditangguhkan",
+    }
 
-    const tunggu = "... Sila tunggu sebentar ...";
-    const carianRawak = "Carian anda menjumpai banyak rekod.</br> Untuk prestasi terbaik, kami memaparkan ~100 rekod rawak sahaja.</br> Sila perincikan carian untuk hasil lebih tepat."
-    const tiadaRekod = "Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza."
+    const URUSAN = {
+        KEMASKINI: "lama",
+        DAFTAR: "baru",
+    }
 
+    const NOTA = {
+        TUNGGU: "... Sila tunggu sebentar ...",
+        CARIANRAWAK: "Carian anda menjumpai banyak rekod.</br> Untuk prestasi terbaik, kami memaparkan ~100 rekod rawak sahaja.</br> Sila perincikan carian untuk hasil lebih tepat.",
+        TIADAREKOD: "Tiada rekod yang sepadan dijumpai.\n Sila cuba terma carian yang berbeza.",
+        LARANGANUBAH: "Anda tiada kebenaran untuk mengubah data ujian hospital ini.",
+        LARANGANMOHON: "Anda tiada kebenaran untuk memohon Perjanjian Perkhidmatan.",
+        IDTIDAKSAH: "ID Hospital tidak sah",
+        DITERIMA: "Permohonan diterima",
+        WUJUD: "Sudah ada",
+        TIADA: "Tiada rekod sepadan dijumpai",
+        PERNAH: "Permohonan pernah dihantar sebelum ini. Sila semak.",
+        TUNGGUMAKLUM: "Permohonan diterima. Sila tunggu maklum balas daripada hospital rujukan.",
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        ambil("nota").innerHTML = tunggu;
-        google.script.run.withSuccessHandler(simpanData).ambilData(2);
-    })
+    /*============
+    2. Pemilih DOM
+    ============*/
+    const nota = document.getElementById("nota");
+    const inputCarian = document.getElementById("cari");
+    const badanJadual = document.getElementById("badan-jadual-daftar-ujian");
+    const modal = {
+        ujian: {
+            tetingkap: document.getElementById("modalDaftarUjian"),
+            tajuk: document.getElementById("tajukModal"),
+            butangX: document.getElementById("butangX"),
+            butangHantar: document.getElementById("butangHantar"),
+        },
+        perjanjian: {
+            tetingkap: document.getElementById("modalMohonPerjanjian"),
+            tajuk: document.getElementById("tajukModalPerjanjian"),
+            butangX: document.getElementById("butang-X"),
+            butangHantar: document.getElementById("butangHantarPermohonan"),
+        },
+    }
+    const borang = {
+        ujian: {
+            idHospital: document.getElementById("IDhospital"),
+            namaHospital: document.getElementById("namaHospital"),
+            namaUjian: document.getElementById("namaUjian"),
+            eqa: document.getElementById("EQA"),
+            ltat: document.getElementById("LTAT"),
+            statusUjian: document.getElementById("statusUjian"),
+            kunci: document.getElementById("Kunci"),
+        },
+        perjanjian: {
+            idMerujuk: document.getElementById("IDhospitalMerujuk"),
+            namaMerujuk: document.getElementById("namaHospitalMerujuk"),
+            namaRujukan: document.getElementById("namaHospitalRujukan"),
+            namaUjianRujukan: document.getElementById("namaUjianRujukan"),
+            kunciMerujuk: document.getElementById("kunciMerujuk"),
+        },
+    }
 
+    /*====================
+    3. Persekitaran Global
+    ====================*/
+    let dataHospital;  // Data semua hospital
+    let dataHospitalTerpilih;  // Data hospital terpilih
+    let dataUjian;  // Semua data ujian
 
+    /*==================
+    4. Fungsi Data Utama
+    ==================*/
+    /**
+     * Menyimpan dan menyusun data hospital yang diterima dari backend Google Sheets.
+     * 
+     * @param {Array<Array<any>>} dataDariGS - Data hospital dari Google Sheets, di mana setiap sub-array
+     * mewakili satu rekod hospital (contoh: [ID, nama, alamat, ...]).
+     * @returns {void}
+     * 
+     * @description
+     * Fungsi ini:
+     * 1. Menyimpan data yang diterima ke dalam pembolehubah global `dataHospital`.
+     * 2. Menyusun hospital mengikut ID secara tertib menaik.
+     * 3. Mengosongkan mesej pemuatan dalam UI (elemen `nota`).
+     * 
+     * @nota
+     * - Mengubah DOM secara langsung (`nota.innerHTML`) untuk membersihkan keadaan pemuatan.
+     * - Bergantung pada pembolehubah global: `dataHospital`, `nota` (elemen DOM).
+     */
+    function simpanData(dataDariGS) {
+        dataHospital = dataDariGS;
+        dataHospital.sort((a, b) => {return a[0] - b[0]});
+        nota.innerHTML = "";
+    }
+
+    /*=================
+    5. Fungsi Pencarian
+    =================*/
+    /**
+     * Mencari hospital berdasarkan ID dan memuatkan data ujian yang berkaitan.
+     * 
+     * @returns {void}
+     * 
+     * @description
+     * Fungsi ini akan:
+     * 1. Menetapkan mesej 'sila tunggu' pada antaramuka pengguna.
+     * 2. Mengambil nilai ID hospital dari input carian.
+     * 3. Menapis senarai hospital untuk mencari rekod yang sepadan dengan ID.
+     * 4. Jika ditemui tepat satu rekod:
+     *    - Menyimpan hospital yang ditemui ke pembolehubah global `dataHospitalTerpilih`
+     *    - Memanggil fungsi backend `ambilData` untuk mendapatkan senarai ujian hospital tersebut
+     * 5. Jika tidak ditemui atau ditemui banyak rekod:
+     *    - Menampilkan notifikasi 'tiada rekod' melalui fungsi `tungguAlert()`
+     */
     function cariIDhospital() {
-        ambil("nota").innerHTML = tunggu;
-        let idHospital = ambil("cari").value;
+        nota.innerHTML = NOTA.TUNGGU;
+        let idHospital = inputCarian.value;
 
         let dataH = dataHospital.filter(rekod => {return rekod[0] == idHospital});
 
@@ -28,12 +131,22 @@
         }
     }
 
-
+    /**
+     * Mencari hospital berdasarkan nama (mampu mengendalikan carian banyak perkataan).
+     * 
+     * @description
+     * 1. Mencari hospital yang namanya mengandungi SEMUA perkataan carian
+     * 2. Jika ditemui, ambil data ujian hospital tersebut dari backend
+     * 3. Jika tidak ditemui, tunjuk notifikasi
+     * 
+     * @nota
+     * - Carian tidak mengira huruf besar/kecil
+     * - Bergantung pada pembolehubah global: dataHospital, dataHospitalTerpilih
+     */
     function cariNamaHospital() {
         let idHospital = [];
-        ambil("nota").innerHTML = tunggu;
-        let carian = ambil("cari").value.toLowerCase();
-        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan);
+        nota.innerHTML = NOTA.TUNGGU;
+        const carianPerkataan = inputCarian.value.toLowerCase().match(/\S+/g) || [];
 
         let dataH = dataHospital.filter(hospital => {
             let nama = hospital[2].toLowerCase();
@@ -53,26 +166,135 @@
     }
 
 
+    /**
+     * Mencari ujian berdasarkan nama (mampu mengendalikan carian banyak perkataan).
+     * 
+     * @description
+     * 1. Mencari semua ujian yang namanya mengandungi SEMUA perkataan carian
+     * 2. Langsung menghubungi backend untuk mendapatkan hasil carian
+     * 3. Menganggap semua hospital sebagai sasaran carian
+     * 
+     * @nota
+     * - Carian tidak mengira huruf besar/kecil
+     * - Menggunakan semua rekod hospital yang ada (dataHospital)
+     * - Hasil diproses oleh fungsi binaJadualCarian
+     */
     function cariNamaUjian() {
-        ambil("nota").innerHTML = tunggu;
+        nota.innerHTML = NOTA.TUNGGU;
         dataHospitalTerpilih = dataHospital;
-        let carian = ambil("cari").value.toLowerCase();
-        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan);
+        const carianPerkataan = inputCarian.value.toLowerCase().match(/\S+/g) || [];
 
         google.script.run.withSuccessHandler(binaJadualCarian).ambilData(4, carianPerkataan);
     }
 
+    /*====================
+    6. Pembantu Pengesahan
+    ====================*/
+    /**
+     * Memaparkan nama hospital berdasarkan ID yang dimasukkan (untuk borang ujian).
+     * 
+     * @description
+     * 1. Validasi ID hospital (wajib 6 karakter)
+     * 2. Jika sah: cari dan paparkan nama hospital
+     * 3. Jika ditemukan: aktifkan butang hantar dan set data ubat
+     * 4. Jika tidak: tampilkan NOTA.IDTIDAKSAH dan nyahaktifkan butang
+     */
+    function paparNamaHospital() {
+        let idHospital = borang.ujian.idHospital.value;
 
+        if (idHospital.length < 6) {
+            borang.ujian.namaHospital.value = "";
+            modal.ujian.butangHantar.disabled = true;
+            modal.ujian.butangHantar.dataset.ubat = "";
+        } else {
+            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+            if (hospital.length == 1) {
+                borang.ujian.namaHospital.value = hospital[0][2];
+                modal.ujian.butangHantar.disabled = false;
+                modal.ujian.butangHantar.dataset.ubat = hospital[0][1];
+
+            } else {
+                borang.ujian.namaHospital.value = NOTA.IDTIDAKSAH;
+                modal.ujian.butangHantar.disabled = true;
+                modal.ujian.butangHantar.dataset.ubat = "";
+            }
+        }
+    }
+
+    /**
+     * Memvalidasi dan memaparkan nama hospital rujukan untuk permohonan perjanjian.
+     * 
+     * @description
+     * 1. Validasi ID hospital (wajib 6 digit)
+     * 2. Semak:
+     *    - ID wujud dalam senarai hospital
+     *    - Bukan hospital yang sama dengan hospital rujukan (sendiri)
+     * 3. Aktifkan butang hantar jika syarat dipenuhi
+     * 
+     * @nota
+     * - Gunakan dataset.namaHospital untuk elak rujukan sendiri
+     * - Data hospital: [ID, ubat, nama, ...]
+     */
+    function paparNamaMerujuk() {
+        let idHospital = borang.perjanjian.idMerujuk.value;
+        let namaHospitalRujukan = modal.perjanjian.butangHantar.dataset.namaHospital;
+
+        if (idHospital.length < 6) {
+            borang.perjanjian.namaMerujuk.value = "";
+            modal.perjanjian.butangHantar.disabled = true;
+            modal.perjanjian.butangHantar.dataset.ubat = "";
+
+        } else {
+            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+
+            if ((hospital.length == 1) && (hospital[0][2] != namaHospitalRujukan)) {
+                borang.perjanjian.namaMerujuk.value = hospital[0][2];
+                modal.perjanjian.butangHantar.disabled = false;
+                modal.perjanjian.butangHantar.dataset.ubat = hospital[0][1];
+
+            } else {
+                borang.perjanjian.namaMerujuk.value = NOTA.IDTIDAKSAH;
+                modal.perjanjian.butangHantar.disabled = true;
+                modal.perjanjian.butangHantar.dataset.ubat = "";
+            }
+        }
+    }
+
+    /*========================
+    7. Pembinaan Jadual Carian
+    ========================*/
+    /**
+     * Membina jadual keputusan carian ujian dari data backend.
+     * 
+     * @param {Array|string} dataDariGS - Data ujian dari server atau NOTA.TIADA
+     * 
+     * @description
+     * 1. Uruskan kes tiada rekod
+     * 2. Susun data mengikut:
+     *    - Hospital (a[1])
+     *    - Status (a[5]) 
+     *    - Nama Ujian (a[2])
+     * 3. Bina baris jadual untuk setiap rekod
+     * 
+     * @nota
+     * - Paparkan notifikasi jika:
+     *   - Tiada rekod (tungguAlert)
+     *   - Banyak rekod (NOTA.CARIANRAWAK)
+     * - Bergantung pada:
+     *   - dataHospitalTerpilih (untuk maklumat hospital)
+     *   - fungsi binaBarisJadual() (untuk bina HTML setiap baris)
+     */
     function binaJadualCarian(dataDariGS) {
-        if (dataDariGS == "Tiada rekod sepadan dijumpai") {
+        if (dataDariGS == NOTA.TIADA) {
                 tungguAlert();
             
         } else {
             if (dataHospitalTerpilih.length == 1) {
-            ambil("nota").innerHTML = "";
+            nota.innerHTML = "";
         
             } else if (dataHospitalTerpilih.length > 1) {
-            ambil("nota").innerHTML = carianRawak;
+            nota.innerHTML = NOTA.CARIANRAWAK;
             }
 
             dataUjian = dataDariGS;
@@ -88,180 +310,223 @@
                 }
             });
 
-            const badanJadual = ambil("badan-jadual-daftar-ujian");
             badanJadual.innerHTML = "";
 
             for (rekod of dataUjian) {
-                let baris = buat("tr");
-
-                let lajurMakmal = buat("td");
-                let lajurUjian = buat("td");
-                let lajurKualiti = buat("td");
-                let lajurStatus = buat("td");
-                let lajurTarikh = buat("td");
-
-                let dataHosp = dataHospitalTerpilih.filter(hosp => {return hosp[0] == rekod[1]});
-
-                if (dataHosp.length == 0) {
+                let baris = binaBarisJadual(rekod);
+                if (baris) {
+                    badanJadual.appendChild(baris);
+                } else {
                     continue;
                 }
-                
-                lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[0][2];
-                
-                lajurUjian.innerHTML = rekod[2];
-
-                lajurKualiti.innerHTML = rekod[3] + "</br> [LTAT: " + rekod[4] + "]";
-
-                lajurStatus.innerHTML = rekod[5];
-
-                let butangUbah = buat("button");
-                butangUbah.innerHTML = "Ubah";
-                butangUbah.dataset.idUjian = rekod[0];
-                butangUbah.dataset.ubat = dataHosp[0][1];
-                butangUbah.setAttribute("type", "button");
-                butangUbah.setAttribute("class", "btn btn-outline-warning");
-                butangUbah.setAttribute("data-bs-toggle", "modal");
-                butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
-                butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
-
-                let butangMohon = buat("button");
-                butangMohon.innerHTML = "Mohon";
-                butangMohon.dataset.idUjian = rekod[0];
-                butangMohon.dataset.namaUjian = rekod[2];
-                butangMohon.dataset.namaHospital = dataHosp[0][2];
-                butangMohon.disabled = rekod[5]=="Aktif"? false : true;
-                butangMohon.setAttribute("type", "button");
-                butangMohon.setAttribute("class", "btn btn-outline-warning");
-                butangMohon.setAttribute("data-bs-toggle", "modal");
-                butangMohon.setAttribute("data-bs-target", "#modalMohonPerjanjian");
-                butangMohon.addEventListener("click", e => paparkanPermohonan(e.target));
-
-                lajurTarikh.innerHTML = rekod[6] + "</br>";
-                lajurTarikh.appendChild(butangUbah);
-                lajurTarikh.appendChild(butangMohon);
-
-                baris.appendChild(lajurMakmal);
-                baris.appendChild(lajurUjian);
-                baris.appendChild(lajurKualiti);
-                baris.appendChild(lajurStatus);
-                baris.appendChild(lajurTarikh);
-
-                if (rekod[5] == "Ditangguhkan") {
-                    baris.classList.add("table-danger");
-                }
-
-                badanJadual.appendChild(baris);
             };
         }
     }
 
+    /**
+     * Membina satu baris jadual untuk paparan data ujian
+     * 
+     * @param {Array} rekod - Data ujian dalam format:
+     *   [0]: ID Ujian, [1]: ID Hospital, [2]: Nama Ujian,
+     *   [3]: EQA, [4]: LTAT, [5]: Status, [6]: Tarikh
+     * @returns {HTMLTableRowElement|null} Baris jadual atau null jika tiada hospital sepadan
+     * 
+     * @description
+     * 1. Cari data hospital yang sepadan dengan ID
+     * 2. Bina sel jadual untuk setiap maklumat ujian
+     * 3. Tambah butang aksi (Ubah/Mohon)
+     * 4. Warnakan baris jika status "Ditangguhkan"
+     */
+    function binaBarisJadual(rekod) {
+        let baris = document.createElement("tr");
 
+        let lajurMakmal = document.createElement("td");
+        let lajurUjian = document.createElement("td");
+        let lajurKualiti = document.createElement("td");
+        let lajurStatus = document.createElement("td");
+        let lajurTarikh = document.createElement("td");
+
+        let dataHosp = dataHospitalTerpilih.filter(hosp => {return hosp[0] == rekod[1]});
+
+        if (dataHosp.length == 0) {
+            return;
+        }
+
+        lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[0][2];
+        
+        lajurUjian.innerHTML = rekod[2];
+
+        lajurKualiti.innerHTML = rekod[3] + "</br> [LTAT: " + rekod[4] + "]";
+
+        lajurStatus.innerHTML = rekod[5];
+
+        let butangUbah = document.createElement("button");
+        butangUbah.innerHTML = "Ubah";
+        butangUbah.dataset.idUjian = rekod[0];
+        butangUbah.dataset.ubat = dataHosp[0][1];
+        butangUbah.setAttribute("type", "button");
+        butangUbah.setAttribute("class", "btn btn-outline-warning");
+        butangUbah.setAttribute("data-bs-toggle", "modal");
+        butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
+        butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
+
+        let butangMohon = document.createElement("button");
+        butangMohon.innerHTML = "Mohon";
+        butangMohon.dataset.idUjian = rekod[0];
+        butangMohon.dataset.namaUjian = rekod[2];
+        butangMohon.dataset.namaHospital = dataHosp[0][2];
+        butangMohon.disabled = rekod[5]== STATUS_UJIAN.AKTIF? false : true;
+        butangMohon.setAttribute("type", "button");
+        butangMohon.setAttribute("class", "btn btn-outline-warning");
+        butangMohon.setAttribute("data-bs-toggle", "modal");
+        butangMohon.setAttribute("data-bs-target", "#modalMohonPerjanjian");
+        butangMohon.addEventListener("click", e => paparkanPermohonan(e.target));
+
+        lajurTarikh.innerHTML = rekod[6] + "</br>";
+        lajurTarikh.appendChild(butangUbah);
+        lajurTarikh.appendChild(butangMohon);
+
+        baris.appendChild(lajurMakmal);
+        baris.appendChild(lajurUjian);
+        baris.appendChild(lajurKualiti);
+        baris.appendChild(lajurStatus);
+        baris.appendChild(lajurTarikh);
+
+        if (rekod[5] == STATUS_UJIAN.TANGGUH) {
+            baris.classList.add("table-danger");
+        }
+
+        return baris;
+    }
+
+    /*================
+    8. Pentadbir Modal
+    ================*/
+    /**
+     * Menyediakan modal untuk pendaftaran ujian baharu.
+     * 
+     * @description
+     * 1. Set tajuk modal
+     * 2. Kosongkan semua input fields
+     * 3. Reset state butang hantar dan dataset
+     * 
+     * @nota
+     * - Untuk kegunaan baru (bukan edit)
+     * - Aktifkan input ID Hospital
+     * - Butang hantar akan disable sehingga pengisian lengkap
+     */
     function daftarUjian() {
-        ambil("tajukModal").innerHTML = "Pendaftaran Ujian Baharu";
+        modal.ujian.tajuk.innerHTML = "Pendaftaran Ujian Baharu";
 
         // Kosongkan semua input
-        let butiranLama = ambil("modalDaftarUjian").querySelectorAll("input");
+        let butiranLama = modal.ujian.tetingkap.querySelectorAll("input");
         butiranLama.forEach((data) => data.value = "");
 
-        ambil("IDhospital").disabled = false;
+        borang.ujian.idHospital.disabled = false;
 
-        ambil("butangHantar").dataset.ubat = "";
-        ambil("butangHantar").dataset.idUjian = "";
-        ambil("butangHantar").dataset.urusan = "baru";
-        ambil("butangHantar").disabled = true;
+        modal.ujian.butangHantar.dataset.ubat = "";
+        modal.ujian.butangHantar.dataset.idUjian = "";
+        modal.ujian.butangHantar.dataset.urusan = "baru";
+        modal.ujian.butangHantar.disabled = true;
     }
 
-
-    function paparNamaHospital() {
-        let idHospital = ambil("IDhospital").value;
-
-        if (idHospital.length < 6) {
-            ambil("namaHospital").value = "";
-            ambil("butangHantar").disabled = true;
-            ambil("butangHantar").dataset.ubat = "";
-        } else {
-            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
-
-            if (hospital.length == 1) {
-                ambil("namaHospital").value = hospital[0][2];
-                ambil("butangHantar").disabled = false;
-                ambil("butangHantar").dataset.ubat = hospital[0][1];
-
-            } else {
-                ambil("namaHospital").value = "ID Hospital tidak sah";
-                ambil("butangHantar").disabled = true;
-                ambil("butangHantar").dataset.ubat = "";
-            }
-        }
-    }
-
-
-    function paparNamaMerujuk() {
-        let idHospital = ambil("IDhospitalMerujuk").value;
-        let namaHospitalRujukan = ambil("butangHantarPermohonan").dataset.namaHospital;
-
-        if (idHospital.length < 6) {
-            ambil("namaHospitalMerujuk").value = "";
-            ambil("butangHantarPermohonan").disabled = true;
-            ambil("butangHantarPermohonan").dataset.ubat = "";
-
-        } else {
-            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
-
-            if ((hospital.length == 1) && (hospital[0][2] != namaHospitalRujukan)) {
-                ambil("namaHospitalMerujuk").value = hospital[0][2];
-                ambil("butangHantarPermohonan").disabled = false;
-                ambil("butangHantarPermohonan").dataset.ubat = hospital[0][1];
-
-            } else {
-                ambil("namaHospitalMerujuk").value = "ID Hospital tidak sah";
-                ambil("butangHantarPermohonan").disabled = true;
-                ambil("butangHantarPermohonan").dataset.ubat = "";
-            }
-        }
-    }
-
-
+    /**
+     * Mengisi borang kemaskini ujian dengan data sedia ada
+     * 
+     * @param {HTMLElement} butangIni - Butang yang mencetuskan paparan (mengandungi dataset)
+     * 
+     * @description
+     * 1. Dapatkan data ujian dan hospital berkaitan
+     * 2. Isi borang modal dengan data yang sedia ada
+     * 3. Set atribut untuk operasi kemaskini
+     * 
+     * @nota
+     * - Untuk operasi edit (urusan = "lama")
+     * - ID Hospital dikunci (disabled)
+     * - Kunci pengesahan dikosongkan
+     */
     function paparkanDataUjian(butangIni) {
+        // Dapatkan data dari dataset butang
         let ubat = butangIni.dataset.ubat;
         let idUjian = butangIni.dataset.idUjian;
 
+        // Cari rekod yang sepadan
         let rekodUjian = dataUjian.filter(rekod => {return rekod[0] == idUjian})[0];
         let rekodHospital = dataHospital.filter(rekod => {return rekod[0] == rekodUjian[1]})[0];
 
-        ambil("tajukModal").innerHTML = "Kemaskini Data Ujian";
+        // Bina UI modal
+        modal.ujian.tajuk.innerHTML = "Kemaskini Data Ujian";
+        borang.ujian.idHospital.disabled = true;
 
-        ambil("IDhospital").disabled = true;
-        ambil("IDhospital").value = rekodUjian[1];
-        ambil("namaHospital").value = rekodHospital[2];
-        ambil("namaUjian").value = rekodUjian[2];
-        ambil("EQA").value = rekodUjian[3];
-        ambil("LTAT").value = rekodUjian[4];
-        ambil("statusUjian").value = rekodUjian[5];
-        ambil("Kunci").value = "";
+        // Isi borang dengan data
+        borang.ujian.idHospital.value = rekodUjian[1];
+        borang.ujian.namaHospital.value = rekodHospital[2];
+        borang.ujian.namaUjian.value = rekodUjian[2];
+        borang.ujian.eqa.value = rekodUjian[3];
+        borang.ujian.ltat.value = rekodUjian[4];
+        borang.ujian.statusUjian.value = rekodUjian[5];
+        borang.ujian.kunci.value = "";
 
-        ambil("butangHantar").dataset.ubat = ubat;
-        ambil("butangHantar").dataset.idUjian = idUjian;
-        ambil("butangHantar").dataset.urusan = "lama";
+        // Set dataset butang hantar
+        modal.ujian.butangHantar.dataset.ubat = ubat;
+        modal.ujian.butangHantar.dataset.idUjian = idUjian;
+        modal.ujian.butangHantar.dataset.urusan = URUSAN.KEMASKINI;
     }
 
-
+    /**
+     * Memaparkan borang permohonan perjanjian ujian
+     * 
+     * @param {HTMLElement} butangIni - Butang yang diklik (mengandungi dataset)
+     * 
+     * @description
+     * 1. Isikan maklumat asas ujian dan hospital rujukan
+     * 2. Reset ruangan input untuk hospital yang dimohon
+     * 3. Set dataset untuk proses permohonan
+     * 
+     * @nota
+     * - Digunakan untuk memohon perjanjian ujian ke hospital lain
+     * - Hospital rujukan ditetapkan secara automatik
+     * - Butang hantar akan diaktifkan setelah pengisian lengkap
+     */
     function paparkanPermohonan(butangIni) {
         let idUjian = butangIni.dataset.idUjian;
         let namaUjian = butangIni.dataset.namaUjian;
         let namaHospitalRujukan = butangIni.dataset.namaHospital;
 
-        ambil("namaHospitalRujukan").value = namaHospitalRujukan;
-        ambil("namaUjianRujukan").value = namaUjian;
-        ambil("IDhospitalMerujuk").value = "";
-        ambil("namaHospitalMerujuk").value = "";
-        ambil("kunciMerujuk").value = "";
-        ambil("butangHantarPermohonan").dataset.ubat = "";
-        ambil("butangHantarPermohonan").dataset.idUjian = idUjian;
-        ambil("butangHantarPermohonan").dataset.namaHospital = namaHospitalRujukan;
+        borang.perjanjian.namaRujukan.value = namaHospitalRujukan;
+        borang.perjanjian.namaUjianRujukan.value = namaUjian;
+        borang.perjanjian.idMerujuk.value = "";
+        borang.perjanjian.namaMerujuk.value = "";
+        borang.perjanjian.kunciMerujuk.value = "";
+        modal.perjanjian.butangHantar.dataset.ubat = "";
+        modal.perjanjian.butangHantar.dataset.idUjian = idUjian;
+        modal.perjanjian.butangHantar.dataset.namaHospital = namaHospitalRujukan;
     }
 
-
+    /*==========================
+    9. Pengesahan & Penghantaran
+    ==========================*/
+    /**
+     * Menyulitkan input pengguna menjadi hash SHA-256 (hex string).
+     * 
+     * @param {string} ubat - Input pengguna akan dicantas secara automatik
+     * @returns {Promise<string>} Hash SHA-256 dalam format hex (64 aksara)
+     * 
+     * @description
+     * Proses hashing:
+     * 1. Bersihkan input (buang ruang kosong di tepi)
+     * 2. Enkod ke UTF-8 → hash dengan SHA-256
+     * 3. Tukar buffer ke string hex
+     * 
+     * @example
+     * makanCerna("kunciRahsia123").then(hash => console.log(hash));
+     * // Output: "a591a6d40bf420404a011733..."
+     * 
+     * @note
+     * - Gunakan untuk pengesahan kunci (client-side).
+     * - Output konsisten dengan hash standard SHA-256.
+     * - Tidak boleh dikembalikan ke input asal.
+     */
     async function makanCerna(ubat) {
         let ubatKod = new TextEncoder().encode(ubat.trim());
         let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
@@ -271,34 +536,60 @@
         return ubatHex;
     }
 
-
+    /**
+     * Menghantar data ujian untuk pendaftaran/kemaskini
+     * 
+     * @param {HTMLElement} butangIni - Butang hantar yang mengandungi dataset
+     * 
+     * @description
+     * 1. Sahkan kunci akses dengan hash SHA-256
+     * 2. Hantar data ke Google Script berdasarkan jenis urusan:
+     *    - Kemaskini: Kemaskini rekod sedia ada
+     *    - Daftar: Cipta rekod baru
+     * 3. Reset UI selepas penghantaran
+     * 
+     * @nota
+     * - Menggunakan fungsi makanCerna() untuk pengesahan
+     * - Data dihantar dalam format:
+     *   [idUjian, idHospital, namaUjian, EQA, LTAT, status, tarikh]
+     * - Bergantung pada:
+     *   - URUSAN (enum untuk jenis operasi)
+     *   - NOTA (mesej sistem)
+     */
     function hantar(butangIni) {
+        // Dapatkan data dari form dan butang
         let urusan = butangIni.dataset.urusan;
         let idUjian = butangIni.dataset.idUjian;
         let ubat = butangIni.dataset.ubat;
 
-        let idHospital = ambil("IDhospital").value;
-        let namaUjian = ambil("namaUjian").value;
-        let EQA = ambil("EQA").value;
-        let LTAT = ambil("LTAT").value;
-        let statusUjian = ambil("statusUjian").value;
-        let tarikh = new Date().toISOString().split("T")[0];
-        let kunci = ambil("Kunci").value;
+        // Kumpulkan data dari borang
+        let dataUjian = {
+            idHospital: borang.ujian.idHospital.value,
+            namaUjian: borang.ujian.namaUjian.value,
+            EQA: borang.ujian.eqa.value,
+            LTAT: borang.ujian.ltat.value,
+            statusUjian: borang.ujian.statusUjian.value,
+            tarikh: new Date().toISOString().split("T")[0],
+        }
+
+        let kunci = borang.ujian.kunci.value;
 
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert("Anda tiada kebenaran untuk mengubah data ujian hospital ini.");
+                alert(NOTA.LARANGANUBAH);
+                return;
+            }
 
-            } else if (urusan == "lama") {
-                let dataBaru = [idUjian, idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
-                ambil("cari").value = idHospital;
-                resetUI();
+            inputCarian.value = dataUjian.idHospital;
+            resetUI();
+            
+            // Sediakan data berdasarkan jenis urusan
+            // Hantar ke Google Script
+            if (urusan == URUSAN.KEMASKINI) {
+                let dataBaru = [idUjian, ...Object.values(dataUjian)];
                 google.script.run.withSuccessHandler(binaJadualCarian).kemaskiniUjian(dataBaru);
-
-            } else if (urusan == "baru") {
-                let dataUjianBaru = ["", idHospital, namaUjian, EQA, LTAT, statusUjian, tarikh];
-                ambil("cari").value = idHospital;
-                resetUI();
+            } else if (urusan == URUSAN.DAFTAR) {
+                let dataUjianBaru = ["", ...Object.values(dataUjian)];
                 google.script.run.withSuccessHandler(binaJadualCarian).daftarUjianBaru(dataUjianBaru);
             }
         });
@@ -306,63 +597,127 @@
 
         // Fungsi bantu untuk reset UI
         function resetUI() {
-            ambil("nota").innerHTML = tunggu;
-            ambil("badan-jadual-daftar-ujian").innerHTML = "";  // Kosongkan jadual
-            ambil("butangX").click();  // Tutup modal
+            nota.innerHTML = NOTA.TUNGGU;
+            badanJadual.innerHTML = "";  // Kosongkan jadual
+            modal.ujian.butangX.click();  // Tutup modal
         }
     }
 
-
+    /**
+     * Menghantar permohonan perjanjian ujian ke hospital lain
+     * 
+     * @param {HTMLElement} butangIni - Butang hantar yang mengandungi dataset
+     * 
+     * @description
+     * 1. Sahkan kunci akses menggunakan hash SHA-256
+     * 2. Hantar data permohonan ke Google Script jika kunci sah
+     * 3. Tutup modal selepas penghantaran
+     * 4. Paparkan maklum balas
+     * 
+     * @nota
+     * - Format data ke backend:
+     *   [ID_Perjanjian, ID_Hospital_Merujuk, ID_Ujian, Status_Mohon, Tarikh]
+     * - Bergantung pada:
+     *   - makanCerna() untuk pengesahan kunci
+     *   - maklumTerimaPermohonan() untuk pemprosesan respons
+     */
     function hantarPermohonan(butangIni) {
+        // Dapatkan dataset dari butang
         let idUjian = butangIni.dataset.idUjian;
         let ubat = butangIni.dataset.ubat;
 
-        let IDhospitalMerujuk = ambil("IDhospitalMerujuk").value;
-        let kunci = ambil("kunciMerujuk").value;
+        // Dapatkan input dari borang
+        let IDhospitalMerujuk = borang.perjanjian.idMerujuk.value;
+        let kunci = borang.perjanjian.kunciMerujuk.value;
+        let tarikh = new Date().toISOString().split("T")[0];
 
+        // Sahkan kunci akses
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert("Anda tiada kebenaran untuk memohon Perjanjian Perkhidmatan.");
+                alert(NOTA.LARANGANMOHON);
 
-            } else {
-                let data = ["", IDhospitalMerujuk, idUjian, "Mohon"];
-                ambil("butang-X").click();
+            } else {  // Tutup modal dan hantar ke Google Script
+                let data = ["", IDhospitalMerujuk, idUjian, "Mohon", tarikh];
+                modal.perjanjian.butangX.click();
                 google.script.run.withSuccessHandler(maklumTerimaPermohonan).mohonPerjanjianBaru(data);
             }
         });
     }
 
-
+    /**
+     * Memproses maklum balas backend selepas penghantaran permohonan perjanjian
+     * 
+     * @param {string} dataDariGS - Respons dari Google Script (NOTA.WUJUD/NOTA.DITERIMA)
+     * 
+     * @description
+     * 1. Mengendalikan dua jenis respons:
+     *    - NOTA.WUJUD: Permohonan pernah dihantar
+     *    - NOTA.DITERIMA: Permohonan baru diterima
+     * 2. Memaparkan alert berdasarkan status respons
+     * 
+     * @nota
+     * - Bergantung pada tetapan NOTA:
+     *   - NOTA.PERNAH: "Permohonan pernah dihantar sebelum ini"
+     *   - NOTA.TUNGGUMAKLUM: "Permohonan diterima. Sila tunggu..."
+     * - Tiada tindakan untuk kes-kes lain
+     */
     function maklumTerimaPermohonan(dataDariGS) {
-        if (dataDariGS == "Sudah ada") {
-            alert("Permohonan pernah dihantar sebelum ini. Sila semak.");
-        } else if (dataDariGS == "Permohonan diterima") {
-            alert("Permohonan diterima. Sila tunggu maklum balas daripada hospital rujukan.");
+        if (dataDariGS == NOTA.WUJUD) {
+            alert(NOTA.PERNAH);
+        } else if (dataDariGS == NOTA.DITERIMA) {
+            alert(NOTA.TUNGGUMAKLUM);
         }
     }
 
-
-    function simpanData(dataDariGS) {
-        dataHospital = dataDariGS;
-        dataHospital.sort((a, b) => {return a[0] - b[0]});
-        ambil("nota").innerHTML = "";
-    }
-
-
+    /*===============
+    10. Fungsi Utiliti
+    ===============*/
+    /**
+     * Memaparkan notifikasi 'tiada rekod' dan mengosongkan ruang nota
+     * 
+     * @description
+     * 1. Mengosongkan kandungan elemen nota
+     * 2. Memaparkan alert dengan mesej NOTA.TIADAREKOD
+     * 
+     * @nota
+     * - Digunakan untuk kes carian tidak berjaya
+     * - Bergantung pada tetapan:
+     *   - `nota`: Elemen DOM untuk paparan status
+     *   - `NOTA.TIADAREKOD`: Mesej standard ("Tiada rekod sepadan dijumpai")
+     * 
+     * @contoh
+     * // Selepas carian gagal
+     * tungguAlert();
+     */
     function tungguAlert() {
-        ambil("nota").innerHTML = "";
-        alert(tiadaRekod);
+        nota.innerHTML = "";
+        alert(NOTA.TIADAREKOD);
     }
 
+    /*===========
+    11. Permulaan
+    ===========*/
 
-    // Dapatkan elemen dari DOM berdasarkan ID
-    function ambil(id) {
-        return document.getElementById(id);
-    }
-
-
-    // Cipta dan kembalikan elemen HTML berdasarkan tag
-    function buat(unsur) {
-        return document.createElement(unsur);
-    }
+    /**
+     * Permulaan sistem apabila halaman selesai dimuatkan
+     * 
+     * @description
+     * 1. Set mesej 'sila tunggu' dalam elemen nota
+     * 2. Ambil data hospital dari Google Sheets (butiran 2)
+     * 3. Gunakan fungsi simpanData() sebagai handler untuk proses data
+     * 
+     * @nota
+     * - Dijalankan sekali semasa halaman pertama kali dimuat
+     * - Bergantung pada:
+     *   - NOTA.TUNGGU: Mesej loading ("...Sila tunggu sebentar...")
+     *   - simpanData(): Fungsi untuk memproses data hospital
+     *   - google.script.run: Sambungan ke Google Apps Script
+     * 
+     * @lihat_juga
+     * - simpanData() - Fungsi pemproses data utama
+     */
+    document.addEventListener('DOMContentLoaded', () => {
+        nota.innerHTML = NOTA.TUNGGU;  // Tunjukkan mesej loading
+        google.script.run.withSuccessHandler(simpanData).ambilData(2);
+    })
 </script>

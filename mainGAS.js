@@ -1,97 +1,159 @@
-/**
- * Objek Alamat menguruskan pemetaan laman kepada fungsi pembina laman.
- *
- * Objek ini membolehkan pendaftaran fungsi pembina laman berdasarkan nama laman.
- */
-const Alamat = {
-    /**
-     * Mendaftarkan fungsi pembina laman untuk laman tertentu.
-     *
-     * @param {string} laman Nama laman untuk didaftarkan.
-     * @param {function(): GoogleAppsScript.HTML.HtmlOutput} fungsi Fungsi pembina laman yang akan dipanggil.
-     */
-    jalan: function(laman, fungsi) {
-        Alamat[laman] = fungsi;
-    }
-};
-
-
-/**
- * Menangani permintaan GET HTTP.
- *
- * Fungsi ini mendaftarkan laman dan mengembalikan laman yang diminta berdasarkan parameter "laman" dalam
- * permintaan GET.
- *
- * @param {GoogleAppsScript.Events.DoGet} e Objek peristiwa permintaan GET.
- * @returns {GoogleAppsScript.HTML.HtmlOutput|undefined} Output HTML laman yang diminta, atau undefined
- * jika laman tidak ditemui.
- */
-function doGet(e) {
-    Alamat.jalan("daftarHospital", binaLamanDaftarHospital);
-    Alamat.jalan("daftarUjian", binaLamanDaftarUjian);
-    Alamat.jalan("daftarPerjanjian", binaLamanDaftarPerjanjian);
-
-    if (e.parameter.laman) {
-        return Alamat[e.parameter.laman]();
-    }
+/*==================
+1. Pemalar & Tetapan
+==================*/
+const ID = {
+    HOSPITAL: "1MmpSWPsl4wCdZ3vV0cSReLfIJs3fRvz73S7oV8YPyWg",
+    UJIAN: "1s5d06iqPI6TrwlZDAYyjRr0O0g1dHI1AULhHbWZCMDo",
+    PERJANJIAN: "1ZAT5On_Ag_2RD9L-8RivArWEoCaXn5iTBx0b2rGBu84",
 }
 
+const HOSPITAL ={
+    AKTIF: "Aktif",
+    RUJUKAN: "Rujukan",
+    MERUJUK: "Merujuk",
+}
 
-// Tugasan: Kaji semula JSDoc dan komen fungsi ini
+const NOTA = {
+    WUJUD: "Sudah ada",
+    DITERIMA: "Permohonan diterima",
+    TIADA: "Tiada rekod sepadan dijumpai",
+}
+
+/*============
+2. Sumber Data
+============*/
+const lembaran = {
+    hospital: SpreadsheetApp.openById(ID.HOSPITAL).getSheetByName("Sheet1"),
+    ujian: SpreadsheetApp.openById(ID.UJIAN).getSheetByName("Sheet1"),
+    perjanjian: SpreadsheetApp.openById(ID.PERJANJIAN).getSheetByName("Sheet1"),
+}
+
+/*===============
+3. Fungsi Utiliti
+===============*/
 /**
- * Mengambil data dari Google Sheets berdasarkan kombinasi parameter bitmask.
+ * Memasukkan kandungan keratan kod JavaScript yang disimpan dalam file HTML.
+ * Fungsi ini membaca kandungan file HTML yang ditentukan menggunakan
+ * `HtmlService.createHtmlOutputFromFile()` dan mengembalikannya sebagai string.
+ *
+ * @param {string} namaFile Nama file HTML (tanpa sambungan .html) yang
+ * mengandungi keratan kod JavaScript.
+ * @return {string} Kandungan file HTML yang ditentukan sebagai string,
+ * mewakili keratan kod JavaScript.
+ */
+function merangkumiFileJS(namaFile) {
+    return HtmlService.createHtmlOutputFromFile(namaFile).getContent();
+}
+
+/**
+ * Membahagi dua nombor dan mengembalikan hasil bahagi integer serta bakinya.
  * 
- * @param {1|0} hospital - Flag untuk akses Data Hospital (1 = ya, 0 = tidak)
- * @param {2|0} ujian - Flag untuk akses Data Ujian (2 = ya, 0 = tidak)
- * @param {4|0} perjanjian - Flag untuk akses Data Perjanjian (4 = ya, 0 = tidak)
- * @returns {Array[]|undefined} - Data tanpa header atau undefined jika tidak memenuhi kondisi
+ * @param {number} pengangka - Nombor yang ingin dibahagi (dividend)
+ * @param {number} penyebut - Nombor pembahagi (divisor)
+ * @returns {[number, number]} Array dengan dua nilai:
+ *   - [0]: Hasil bahagi integer (pembulatan ke bawah)
+ *   - [1]: Baki pembahagian (modulo)
+ * 
+ * @example
+ * bahagiBaki(17, 5);  // [3, 2] (kerana 17 ÷ 5 = 3 dengan baki 2)
+ * bahagiBaki(100, 25); // [4, 0]
+ */
+function bahagiBaki(pengangka, penyebut) {
+    let nomborBulat = Math.floor(pengangka / penyebut);
+    let baki = pengangka % penyebut;
+
+    return [nomborBulat, baki];
+}
+
+// Fungsi helper untuk ambil semua data tanpa header
+function ambilSemua(lembaran) {
+    // Mengambil semua data dari lembaran Google Sheets (tidak termasuk baris header).
+    let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
+    data.shift();  // Buang baris header
+
+    return data;
+}
+
+/*===================
+4. Operasi Data Utama
+===================*/
+/**
+ * Mengambil dan memproses data dari Google Sheets berdasarkan jenis permintaan (butiran) dan kriteria carian.
+ * 
+ * @param {number} butiran - Jenis data yang diminta (1-6)
+ * @param {string|Array|null} [carian=null] - Kriteria carian (bergantung pada jenis butiran):
+ *   - Untuk butiran 1/2: Tidak digunakan
+ *   - Untuk butiran 3/4: Array istilah carian
+ *   - Untuk butiran 5/6: ID hospital khusus
+ * @returns {Array[]|string|Array} - Struktur data berbeza mengikut butiran:
+ *   - Butiran 1-4: Array 2D data
+ *   - Butiran 5-6: Array [dataPerjanjian, dataUjian, jenisRujukan]
+ *   - Butiran 4: String "Tiada rekod sepadan dijumpai" jika tiada hasil
  * 
  * @description
- * Sistem bitmask menentukan lembaran mana yang diakses:
- * - Nilai parameter: Hospital(1) + Ujian(2) + Perjanjian(4) = Total
- * - Contoh: 
- *   - Total 1: Hanya Data Hospital
- *   - Total 3: Hospital + Ujian (1+2)
- *   - Total 5: Hospital + Perjanjian (1+4)
+ * ALIRAN KERJA BERDASARKAN BUTIRAN:
  * 
+ * [Butiran 1] Semua data hospital aktif
+ *   - Filter rekod dengan status "Aktif" (kolum 11)
+ * 
+ * [Butiran 2] Data hospital (lajur terpilih sahaja)
+ *   - Ambil ID, Kunci, Nama (kolum 0-2) untuk hospital aktif
+ * 
+ * [Butiran 3] Data ujian untuk ID hospital tertentu
+ *   - Gunakan Set untuk pencarian efisien
+ *   - Sampel rawak jika hasil >100 rekod
+ * 
+ * [Butiran 4] Data ujian berdasarkan carian teks
+ *   - Filter mengikut istilah dalam nama ujian (kolum 2)
+ *   - Sampel rawak jika hasil >100 rekod
+ * 
+ * [Butiran 5] Data perjanjian + ujian (hospital merujuk)
+ *   - Gabungkan data dari lembaran Perjanjian dan Ujian
+ *   - Tandakan sebagai "Merujuk"
+ * 
+ * [Butiran 6] Data perjanjian + ujian (hospital rujukan)
+ *   - Gabungkan data dari lembaran Perjanjian dan Ujian
+ *   - Tandakan sebagai "Rujukan"
  */
 function ambilData(butiran, carian=null) {
-    function ambilSemua(lembaran) {
-        let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
-        data.shift();
 
-        return data;
-    }
+    // Ambil semua data hospital yang aktif
+    if (butiran == 1) {
+        let dataHospital = ambilSemua(lembaran.hospital);
 
-    if (butiran == 1) {  // semua data hospital
-        let dataHospital = ambilSemua(lembaranDataHospital);
-
-        let dataAktif = dataHospital.filter(rekod => {return rekod[11] == "Aktif"});
+        // Filter rekod dengan status "Aktif" (kolum 11)
+        let dataAktif = dataHospital.filter(rekod => {return rekod[11] == HOSPITAL.AKTIF});
 
         return dataAktif;
 
-    } else if (butiran == 2) {  // data hospital lajur terpilih
+    // Ambil data hospital (lajur terpilih sahaja)
+    } else if (butiran == 2) {
         let dataHospital = [];
-        let data = ambilSemua(lembaranDataHospital);
+        let data = ambilSemua(lembaran.hospital);
         data.forEach(rekod => {
-            if (rekod[11] == "Aktif") {
+            if (rekod[11] == HOSPITAL.AKTIF) {
                 dataHospital.push([rekod[0], rekod[1], rekod[2]]);
             }
         });
 
         return dataHospital;
 
-    } else if (butiran == 3) {  // data ujian bagi ID hospital terpilih
+    // Ambil data ujian untuk ID hospital tertentu
+    } else if (butiran == 3) {
         let dataUjian = [];
         let bilanganID = carian.length;
+
+        // Gunakan Set untuk pencarian ID lebih efisien
         const carianID = new Set(carian);
 
-        let dataU = ambilSemua(lembaranDataUjian).filter(rekod => {return carianID.has(rekod[1])});
+        let dataU = ambilSemua(lembaran.ujian).filter(rekod => {return carianID.has(rekod[1])});
 
         if (bilanganID == 1) {
             dataUjian = dataU;
 
         } else if (bilanganID > 1) {
+            // Ambil sampel rawak jika data melebihi 100 rekod
+            // [penokok, baki] = (jumlahData / 100)
             let [penokok, baki] = bahagiBaki(dataU.length, 100);
 
             let pemula = Math.floor(Math.random() * baki);
@@ -103,16 +165,19 @@ function ambilData(butiran, carian=null) {
 
         return dataUjian;
 
-    } else if (butiran == 4) { // data ujian bagi carian yang muncul dalam nama ujian
+    // Ambil data ujian berdasarkan carian teks nama ujian
+    } else if (butiran == 4) {
         let dataUjian = [];
-        let dataU = ambilSemua(lembaranDataUjian).filter(hospital => {
+        let dataU = ambilSemua(lembaran.ujian).filter(hospital => {
+            // Semak jika nama ujian mengandungi SEMUA istilah carian
             let namaUjian = hospital[2].toLowerCase();
 
             return carian.every(perkatan => namaUjian.includes(perkatan));
         });
 
         if (dataU.length <= 0) {
-            return "Tiada rekod sepadan dijumpai";
+            // Return mesej khusus jika tiada rekod ditemui
+            return NOTA.TIADA;
 
         } else if (dataU.length <= 100) {
             dataUjian = dataU;
@@ -128,8 +193,9 @@ function ambilData(butiran, carian=null) {
 
         return dataUjian;
 
-    } else if (butiran == 5) {  // data perjanjian bagi ID hospital merujuk yang terpilih
-        let dataJ = ambilSemua(lembaranDataPerjanjian).filter(rekod => {return rekod[1] == carian});
+    // Ambil data perjanjian dan ujian bagi hospital yang merujuk
+    } else if (butiran == 5) {
+        let dataJ = ambilSemua(lembaran.perjanjian).filter(rekod => {return rekod[1] == carian});
 
         let senaraiUjian = [];
 
@@ -137,14 +203,22 @@ function ambilData(butiran, carian=null) {
             senaraiUjian.push(rekod[2]);
         }
 
+        // Gunakan Set untuk pencarian ID lebih efisien
         const setIDujian = new Set(senaraiUjian);
 
-        let dataU = ambilSemua(lembaranDataUjian).filter(rekod => {return setIDujian.has(rekod[0])});
+        let dataU = ambilSemua(lembaran.ujian).filter(rekod => {return setIDujian.has(rekod[0])});
 
-        return [dataJ, dataU, "Merujuk"];
-    
-    } else if (butiran == 6) {  // data perjanjian bagi ID hospital rujukan yang terpilih
-        let dataUjian = ambilSemua(lembaranDataUjian).filter(rekod => {return rekod[1] == carian});
+        // Gabungkan data dari 2 lembaran berbeza:
+        // 1. Data perjanjian (lembaran.perjanjian)
+        // 2. Data ujian (lembaran.ujian)
+        // Tandakan jenis hubungan ("Merujuk"/"Rujukan")
+        // Return format khusus untuk butiran 5/6:
+        // [dataPerjanjian, dataUjian, jenisRujukan]
+        return [dataJ, dataU, HOSPITAL.MERUJUK];
+
+    // Ambil data perjanjian dan ujian bagi hospital rujukan
+    } else if (butiran == 6) {
+        let dataUjian = ambilSemua(lembaran.ujian).filter(rekod => {return rekod[1] == carian});
         
         let senaraiUjian = [];
         let senaraiU = [];
@@ -153,71 +227,33 @@ function ambilData(butiran, carian=null) {
             senaraiUjian.push(rekod[0]);
         }
 
+        // Gunakan Set untuk pencarian ID lebih efisien
         const setIDujian = new Set(senaraiUjian);
 
-        let dataJ = ambilSemua(lembaranDataPerjanjian).filter(rekod => {return setIDujian.has(rekod[2])});
+        let dataJ = ambilSemua(lembaran.perjanjian).filter(rekod => {return setIDujian.has(rekod[2])});
 
         for (rekod of dataJ) {
             senaraiU.push(rekod[2]);
         }
 
+        // Gunakan Set untuk pencarian ID lebih efisien
         const setIDu = new Set(senaraiU);
 
         let dataU = dataUjian.filter(rekod => {return setIDu.has(rekod[0])});
 
-        return [dataJ, dataU, "Rujukan"];
+        // Gabungkan data dari 2 lembaran berbeza:
+        // 1. Data perjanjian (lembaran.perjanjian)
+        // 2. Data ujian (lembaran.ujian)
+        // Tandakan jenis hubungan ("Merujuk"/"Rujukan")
+        // Return format khusus untuk butiran 5/6:
+        // [dataPerjanjian, dataUjian, jenisRujukan]
+        return [dataJ, dataU, HOSPITAL.RUJUKAN];
     }
 }
 
-
-function kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai) {
-    let baris = Number(idPerjanjian);
-
-    lembaranDataPerjanjian.getRange(baris, 4).setValue(statusPerjanjian);
-    lembaranDataPerjanjian.getRange(baris, 5).setValue(tarikh);
-
-    if (sebagai == "Merujuk") {
-        return ambilData(5, idHospital);
-
-    } else if (sebagai == "Rujukan") {
-        return ambilData(6, idHospital);
-    }
-}
-
-
-function bahagiBaki(pengangka, penyebut) {
-    let nomborBulat = Math.floor(pengangka / penyebut);
-    let baki = pengangka % penyebut;
-
-    return [nomborBulat, baki];
-}
-
-
-function kemaskiniUjian(dataBaru) {
-    let idUjian = dataBaru[0];
-    let baris = Number(idUjian);
-    let idHospital = [dataBaru[1]];
-
-    for (let i=3; i<8; i++) {
-        lembaranDataUjian.getRange(baris, i).setValue(dataBaru[i-1]);
-    }
-
-    return ambilData(3, idHospital);
-}
-
-
-function daftarUjianBaru(dataUjianBaru) {
-    let idHospital = [dataUjianBaru[1]];
-
-    lembaranDataUjian.appendRow(dataUjianBaru);
-    let jumlahBaris = lembaranDataUjian.getLastRow()-1;  // tidak termasuk baris tajuk
-    lembaranDataUjian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");
-    lembaranDataUjian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");
-
-    return ambilData(3, idHospital);
-}
-
-
+/*=========================
+5. Pengurusan Data Hospital
+=========================*/
 /**
  * Kemaskini data hospital sedia ada dalam Google Sheets.
  * - Lajur 1: ID Hospital (diperlukan untuk mencari baris)
@@ -231,14 +267,12 @@ function kemaskiniHospital(dataBaru) {
     let idHospital = dataBaru[0];  // ID Hospital (kolum tersembunyi)
     let baris = Number(idHospital);  // Convert ID ke nombor baris
 
-    // Kemaskini kolum 3-12 (skip lajur 1 dan 2)
-    for (let i=3; i<13; i++) {
-        lembaranDataHospital.getRange(baris, i).setValue(dataBaru[i-2]);
-    }
+    // Kemaskini kolum 3-13 (skip lajur 1 dan 2)
+    let data = [dataBaru.slice(1)];  // data indeks 1-11 untuk dikemaskini
+    lembaran.hospital.getRange(baris, 3, 1, 11).setValues(data);
 
     return ambilData(1);  // Kembalikan data terkini
 }
-
 
 /**
  * Daftar hospital baru ke Google Sheets.
@@ -251,81 +285,219 @@ function kemaskiniHospital(dataBaru) {
  */
 function daftarHospitalBaru(dataHospitalBaru) {
     // Tambah rekod baru (auto isi ID di lajur 1)
-    lembaranDataHospital.appendRow(dataHospitalBaru);
+    lembaran.hospital.appendRow(dataHospitalBaru);
 
     return ambilData(1);  // Kembalikan data terkini
 }
 
+/*======================
+6. Pengurusan Data Ujian
+======================*/
+/**
+ * Mengemaskini maklumat ujian dalam Google Sheets dan memulangkan data terkini.
+ * 
+ * @param {Array} dataBaru - Array data untuk dikemaskini dengan struktur:
+ *   - [0]: ID Ujian (untuk tentukan baris)
+ *   - [1]: ID Hospital berkaitan
+ *   - [2..6]: Data untuk kolum 3-7 (nama, parameter, dll.)
+ * @returns {Array[]} Data ujian terkini untuk hospital berkaitan (dari `ambilData(3, idHospital)`)
+ * 
+ * @description
+ * PROSES:
+ * 1. Tentukan baris berdasarkan ID Ujian
+ * 2. Kemaskini kolum 3-7 dengan data baru
+ * 3. Dapatkan semula data ujian terkini untuk hospital tersebut
+ * 
+ * @example
+ * // Kemaskini ujian ID "45" untuk hospital "HOSP78"
+ * const data = kemaskiniUjian(["45", "HOSP78", "Ujian Baru", "Param1", ...]);
+ */
+function kemaskiniUjian(dataBaru) {
+    let idUjian = dataBaru[0];
+    let baris = Number(idUjian);  // Tukar ID kepada nombor baris
+    let idHospital = [dataBaru[1]];  // Simpan sebagai array untuk ambilData()
+    let data = [dataBaru.slice(2)];  // data indeks 2-6 untuk dikemaskini
 
-function mohonPerjanjianBaru(data) {
-    function ambilSemua(lembaran) {
-        let data = lembaran.getRange("A1").getDataRegion().getDisplayValues();
-        data.shift();
+    // Kemaskini 5 lajur, kolum 3-7 (indeks Sheets) dengan data indeks 2-6 dari array
+    lembaran.ujian.getRange(baris, 3, 1, 5).setValues(data);
 
-        return data;
+    return ambilData(3, idHospital);  // Kembalikan data ujian terkini
+}
+
+/**
+ * Mendaftarkan ujian baru ke dalam sistem dan memulangkan senarai ujian terkini untuk hospital berkaitan.
+ * 
+ * @param {Array} dataUjianBaru - Data ujian dalam format:
+ *   [0]: ID Ujian (auto-generated)
+ *   [1]: ID Hospital (format "000000")
+ *   [2..n]: Maklumat ujian (nama, parameter, dll.)
+ * @returns {Array[]} Senarai ujian terkini untuk hospital tersebut (dari `ambilData(3, idHospital)`)
+ * 
+ * @description
+ * ALUR KERJA:
+ * 1. Tambah rekod baru menggunakan `appendRow()`
+ * 2. Format ID (kolum 1 & 2) sebagai 6-digit (contoh: "000123")
+ * 3. Dapatkan data terkini untuk hospital berkaitan
+ * 
+ * @example
+ * // Daftar ujian baru untuk hospital "000456"
+ * const data = daftarUjianBaru([
+ *   "",             // ID auto-generated
+ *   "000456",       // ID Hospital
+ *   "Ujian Darah",  // Nama ujian
+ *   "Param1,Param2" // Parameter
+ * ]);
+ */
+function daftarUjianBaru(dataUjianBaru) {
+    let idHospital = [dataUjianBaru[1]];  // Simpan sebagai array untuk ambilData()
+
+    // 1. Tambah rekod baru
+    lembaran.ujian.appendRow(dataUjianBaru);
+
+    // 2. Format ID sebagai 6-digit
+    let jumlahBaris = lembaran.ujian.getLastRow()-1;  // tidak termasuk baris tajuk
+    lembaran.ujian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");  // Lajur ID Ujian
+    lembaran.ujian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");  // Lajur ID Hospital
+
+    // 3. Pulangkan data terkini
+    return ambilData(3, idHospital);
+}
+
+/*===========================
+7. Pengurusan Data Perjanjian
+===========================*/
+/**
+ * Mengemaskini status dan tarikh perjanjian dalam Google Sheets, kemudian memulangkan data terkini.
+ * 
+ * @param {string} idPerjanjian - ID unik perjanjian (baris dalam lembaran)
+ * @param {string} statusPerjanjian - Status baru untuk dikemaskini (kolum 4)
+ * @param {string} tarikh - Tarikh kemaskini dalam format ISO (YYYY-MM-DD) (kolum 5)
+ * @param {string} idHospital - ID hospital berkaitan (untuk ambil data semula)
+ * @param {"Merujuk"|"Rujukan"} sebagai - Jenis hubungan hospital:
+ *   - "Merujuk": Hospital yang menghantar ujian
+ *   - "Rujukan": Hospital yang menerima ujian
+ * @returns {Array[]} Data perjanjian + ujian terkini (bergantung pada jenis hubungan)
+ * 
+ */
+function kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai) {
+    let baris = Number(idPerjanjian);  // Tukar ID kepada nombor baris
+
+    // Kemaskini status dan tarikh
+    let dataBaru = [[statusPerjanjian, tarikh]];
+    lembaran.perjanjian.getRange(baris, 4, 1, 2).setValues(dataBaru);
+
+    // Dapatkan data terkini berdasarkan jenis hubungan
+    if (sebagai == HOSPITAL.MERUJUK) {
+        return ambilData(5, idHospital);  // [dataPerjanjian, dataUjian, "Merujuk"]
+
+    } else if (sebagai == HOSPITAL.RUJUKAN) {
+        return ambilData(6, idHospital);  // [dataPerjanjian, dataUjian, "Rujukan"]
     }
+}
 
-    let dataPerjanjian = ambilSemua(lembaranDataPerjanjian);
-
+/**
+ * Memproses permohonan perjanjian baru antara hospital dan makmal rujukan.
+ * 
+ * @param {Array} data - Data perjanjian dalam format:
+ *   [0]: ID Perjanjian (auto-generate)
+ *   [1]: ID Hospital Merujuk (format "000000")
+ *   [2]: ID Ujian (format "000000")
+ *   [3..n]: Maklumat tambahan perjanjian
+ * @returns {string} Status permohonan:
+ *   - "Sudah ada" jika perjanjian serupa wujud
+ *   - "Permohonan diterima" jika berjaya didaftarkan
+ * 
+ * @description
+ * ALIRAN KERJA:
+ * 1. Semak jika perjanjian serupa (hospital + makmal) sudah wujud
+ * 2. Jika tiada, daftar perjanjian baru
+ * 3. Format semua ID sebagai 6-digit
+ * 
+ * @example
+ * // Mohon perjanjian baru
+ * const status = mohonPerjanjianBaru([
+ *   "",             // ID auto-generate
+ *   "000123",       // ID Hospital Merujuk
+ *   "000456",       // ID Ujian
+ *   "Mohon"         // Status permohonan perjanjian
+ *   "2025-01-01",   // Tarikh kemaskini
+ * ]);
+ */
+function mohonPerjanjianBaru(data) {
+    // 1. Semak perjanjian sedia ada
+    let dataPerjanjian = ambilSemua(lembaran.perjanjian);
     let rujukanSediaAda = [];
 
     for (rekod of dataPerjanjian) {
-        if (rekod[1] == data[1]) {rujukanSediaAda.push(rekod[2]);}
+        if (rekod[1] == data[1]) {  // Bandingkan ID Hospital merujuk
+            rujukanSediaAda.push(rekod[2]);  // Kumpulkan ID Ujian
+        }
     }
 
+    // Gunakan Set untuk pencarian ID lebih efisien
     const setRujukanSediaAda = new Set(rujukanSediaAda);
 
+    // 2. Jika kombinasi hospital+ujian sudah wujud
     if (setRujukanSediaAda.has(data[2])) {
-        return "Sudah ada";
+        return NOTA.WUJUD;
     }
 
-    lembaranDataPerjanjian.appendRow(data);
-    let jumlahBaris = lembaranDataPerjanjian.getLastRow() - 1;  //tidak termasuk baris tajuk
-    lembaranDataPerjanjian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");
-    lembaranDataPerjanjian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");
-    lembaranDataPerjanjian.getRange(2, 3, jumlahBaris).setNumberFormat("000000");
+    // 3. Daftar perjanjian baru
+    lembaran.perjanjian.appendRow(data);
 
-    return "Permohonan diterima";
+    // 4. Format semua ID sebagai 6-digit
+    let jumlahBaris = lembaran.perjanjian.getLastRow() - 1;  //tidak termasuk baris tajuk
+    lembaran.perjanjian.getRange(2, 1, jumlahBaris).setNumberFormat("000000");  // ID Perjanjian
+    lembaran.perjanjian.getRange(2, 2, jumlahBaris).setNumberFormat("000000");  // ID Hospital merujuk
+    lembaran.perjanjian.getRange(2, 3, jumlahBaris).setNumberFormat("000000");  // ID Ujian
+
+    return NOTA.DITERIMA;
 }
 
+/*===================
+8. Penghala & Templat 
+===================*/
+/**
+ * Objek Alamat menguruskan pemetaan laman kepada fungsi pembina laman.
+ *
+ * Objek ini bertindak sebagai:
+ * 1. Direktori pusat untuk fungsi pembina laman (builder functions)
+ * 2. Mekanisma penghalaan (routing) berdasarkan parameter URL
+ */
+const Alamat = {
+    /**
+     * Mendaftarkan fungsi pembina laman untuk laman tertentu.
+     * 
+     * @contoh
+     * Alamat.jalan("lamanSaya", binaLamanSaya);
+     */
+    jalan: function(laman, fungsi) {
+        Alamat[laman] = fungsi;
+    }
+};
 
 /**
- * Memasukkan kandungan keratan kod JavaScript yang disimpan dalam file HTML.
- * Fungsi ini membaca kandungan file HTML yang ditentukan menggunakan
- * `HtmlService.createHtmlOutputFromFile()` dan mengembalikannya sebagai string.
+ * Penghala utama untuk permintaan HTTP GET dalam aplikasi Web App.
  *
- * @param {string} namaFile Nama file HTML (tanpa sambungan .html) yang
- * mengandungi keratan kod JavaScript.
- * @return {string} Kandungan file HTML yang ditentukan sebagai string,
- * mewakili keratan kod JavaScript.
+ * Tanggungjawab:
+ * 1. Mendaftarkan semua laman yang tersedia
+ * 2. Memproses parameter URL untuk menentukan laman yang diminta
+ * 3. Mengembalikan output HTML laman berkenaan
+ * 
+ * @contoh URL
+ * /exec?laman=daftarHospital
  */
-function merangkumiFileJS(namaFile) {
-    return HtmlService.createHtmlOutputFromFile(namaFile).getContent();
+function doGet(e) {
+    // Pendaftaran laman
+    Alamat.jalan("daftarHospital", binaLamanDaftarHospital);
+    Alamat.jalan("daftarUjian", binaLamanDaftarUjian);
+    Alamat.jalan("daftarPerjanjian", binaLamanDaftarPerjanjian);
+
+    // Pemprosesan permintaan
+    if (e.parameter.laman) {
+        return Alamat[e.parameter.laman]();
+    }
 }
-
-
-function binaLamanDaftarUjian() {
-    return binaLaman("daftarUjian");
-}
-
-
-/**
- * Mencipta dan mengembalikan laman pendaftaran hospital.
- *
- * Fungsi ini menggunakan templat HTML dari fail "daftarHospital"
- * untuk membina laman pendaftaran hospital.
- *
- * @returns {GoogleAppsScript.HTML.HtmlOutput} Output HTML laman pendaftaran hospital yang dinilai.
- */
-function binaLamanDaftarHospital() {
-    return binaLaman("daftarHospital");
-}
-
-
-function binaLamanDaftarPerjanjian() {
-    return binaLaman("daftarPerjanjian");
-}
-
 
 /**
  * Mencipta dan menilai templat HTML dari nama fail yang diberikan.
@@ -339,29 +511,35 @@ function binaLaman(namaFile) {
     return laman.evaluate();
 }
 
+/*================
+9. Pembinaan Laman
+================*/
+/**
+ * Mencipta dan mengembalikan laman daftar hospital.
+ * Fungsi ini menggunakan templat HTML dari fail "daftarHospital" untuk membina laman daftar hospital.
+ *
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} Output HTML laman daftar hospital yang dinilai.
+ */
+function binaLamanDaftarHospital() {
+    return binaLaman("daftarHospital");
+}
 
 /**
- *Pemalar yang digunakan dalam projek ini
-*/
-const hamparanDataHospital = SpreadsheetApp.openById("1MmpSWPsl4wCdZ3vV0cSReLfIJs3fRvz73S7oV8YPyWg");
-const hamparanDataUjian = SpreadsheetApp.openById("1s5d06iqPI6TrwlZDAYyjRr0O0g1dHI1AULhHbWZCMDo");
-const hamparanDataPerjanjian = SpreadsheetApp.openById("1ZAT5On_Ag_2RD9L-8RivArWEoCaXn5iTBx0b2rGBu84");
-
+ * Mencipta dan mengembalikan laman daftar ujian.
+ * Fungsi ini menggunakan templat HTML dari fail "daftarUjian" untuk membina laman daftar ujian.
+ *
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} Output HTML laman daftar ujian yang dinilai.
+ */
+function binaLamanDaftarUjian() {
+    return binaLaman("daftarUjian");
+}
 
 /**
- * Sumber data
- * 1. Data Hospital
- * 2. Data Ujian
- * 3. Data Perjanjian
- * 
- * Tidak termasuk baris pertama iaitu nama/tajuk lajur
-*/
-
-//Data Hospital
-const lembaranDataHospital = hamparanDataHospital.getSheetByName("Sheet1");
-
-//Data Ujian
-const lembaranDataUjian = hamparanDataUjian.getSheetByName("Sheet1");
-
-//Data Perjanjian
-const lembaranDataPerjanjian = hamparanDataPerjanjian.getSheetByName("Sheet1");
+ * Mencipta dan mengembalikan laman daftar perjanjian.
+ * Fungsi ini menggunakan templat HTML dari fail "daftarPerjanjian" untuk membina laman daftar perjanjian.
+ *
+ * @returns {GoogleAppsScript.HTML.HtmlOutput} Output HTML laman perjanjian yang dinilai.
+ */
+function binaLamanDaftarPerjanjian() {
+    return binaLaman("daftarPerjanjian");
+}

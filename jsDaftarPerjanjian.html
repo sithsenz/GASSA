@@ -68,9 +68,9 @@
             kumpulanButangRujukan.appendChild(butangLulus);
             kumpulanButangRujukan.appendChild(butangTolak);
 
-            let dataU = dataUjian.filter(ujian => {return ujian[0] == rekod[2]});
-            let hospitalRujukan = dataHospital.filter(hosp => {return hosp[0] == dataU[0][1]});
-            let hospitalMerujuk = dataHospital.filter(hosp => {return hosp[0] == rekod[1]});
+            let dataU = dataUjian.find(ujian => {return ujian[0] == rekod[2]});
+            let hospitalRujukan = dataHospital.find(hosp => {return hosp[0] == dataU[0][1]});
+            let hospitalMerujuk = dataHospital.find(hosp => {return hosp[0] == rekod[1]});
             let idHospital;
             let namaHospital;
 
@@ -183,7 +183,7 @@
             ambil("butangPapar").disabled = true;
 
         } else {
-            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
             if (hospital.length == 1) {
                 ambil("namaHospital").value = hospital[0][2];

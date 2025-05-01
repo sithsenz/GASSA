@@ -1,51 +1,208 @@
 <script>
-    /**
-     * @type {Array<Array<any>> | undefined} dataAsal - Data asal yang diterima dari Google Sheets.
-     * Setiap elemen dalam array luar mewakili satu rekod hospital.
-     * Struktur dalaman setiap rekod (array dalam):
-     * [0]: ID Hospital
-     * [1]: Kunci
-     * [2]: Nama Hospital
-     * [3]: Laman Sesawang (boleh jadi undefined)
-     * [4]: Pautan Panduan (boleh jadi undefined)
-     * [5]: Alamat
-     * [6]: Emel
-     * [7]: Tel Pejabat
-     * [8]: MS ISO 15189 (boolean, true jika diakreditasi)
-     * [9]: MSQH (boolean, true jika diakreditasi)
-     * [10]: PHLAS (boolean, true jika diakreditasi)
-     * [11]: Status (aktif atau padam)
-     * [12]: Tarikh kemas kini terakhir
-     */
+    /*==================
+    1. Pemalar & Tetapan
+    ==================*/
+    const URUSAN = {
+        KEMASKINI: "lama",
+        DAFTAR: "baru",
+    }
+
+    const NOTA = {
+        TUNGGU: "... Sila tunggu sebentar ...",
+        TAHNIAH: "Tahniah! Boleh cerna.",
+        MAAF: "Maaf, akan cirit!",
+        LARANG: "Anda tiada kebenaran untuk mengubah data hospital ini.",
+    }
+
+    /*============
+    2. Pemilih DOM
+    ============*/
+    const inputCarian = document.getElementById("cariHospital");
+    const nota = document.getElementById("nota");
+    const badanJadual = document.getElementById("badan-jadual-daftar-hospital");
+    const modal = {
+        daftarHospital: document.getElementById("modalDaftarHospital"),
+        tajuk: document.getElementById("tajukModal"),
+        notaKunci: document.getElementById("notaKunci"),
+        butangX: document.getElementById("butangX"),
+        butangHantar: document.getElementById("butangHantar"),
+    }
+    const borang = {
+        namaHospital: document.getElementById("namaHospital"),
+        wwwHospital: document.getElementById("wwwHospital"),
+        wwwPanduan: document.getElementById("wwwPanduan"),
+        alamat: document.getElementById("alamat"),
+        emel: document.getElementById("emel"),
+        tel: document.getElementById("telPejabat"),
+        msiso: document.getElementById("msiso"),
+        msqh: document.getElementById("msqh"),
+        phlas: document.getElementById("phlas"),
+        kunci: document.getElementById("Kunci"),
+    }
+
+    /*====================
+    3. Persekitaran Global
+    ====================*/
     let dataAsal;
+    let cerna = false;
 
-
+    /*==================
+    4. Fungsi Utama Data
+    ==================*/
     /**
-     * Event listener yang dijalankan apabila DOM telah dimuat sepenuhnya.
-     * Ia memanggil fungsi `ambilData` dari skrip Google Apps
-     * melalui `google.script.run` dan menggunakan `simpanData` sebagai
-     * success handler untuk memproses data yang dikembalikan.
+     * Fungsi success handler yang dipanggil setelah data dari Google Sheets
+     * berjaya diterima oleh `google.script.run.ambilData()`. Ia menyimpan data
+     * yang diterima ke dalam pembolehubah global `dataAsal` dan kemudian
+     * memanggil fungsi `binaJadualDaftarHospital()` untuk memaparkan data
+     * dalam bentuk jadual.
+     *
+     * @param {Array<Array<any>> | undefined} dataDariGS Data yang diterima dari Google Sheets.
+     * Struktur data ini sama seperti yang dijelaskan untuk `dataAsal`.
      */
-    document.addEventListener('DOMContentLoaded', () => {
-        google.script.run.withSuccessHandler(simpanData).ambilData(1);
-    })
+    function simpanData(dataDariGS) {
+        // Periksa sama ada pelayar mempunyai fungsi untuk enkripsi web
+        if (!cerna) {
+            bolehCerna();
+        }
+        // Simpan data yang diterima dari Google Sheets ke dalam pembolehubah global.
+        dataAsal = dataDariGS;
+        // Data disusun mengikut nilai ID Hospital mengikut tertib menaik
+        dataAsal.sort((a, b) => {return a[0] - b[0]});
 
+        // Bina jadual pendaftaran hospital menggunakan data yang telah disimpan.
+        binaJadualDaftarHospital();
+    }
 
+    /*==================
+    5. Fungsi Membina UI
+    ==================*/
     /**
      * Membina jadual pendaftaran hospital berdasarkan data yang disimpan dalam
-     * `dataAsal`. Ia akan mencari elemen dengan ID "badan-jadual-daftar-hospital"
-     * dan mengisi baris-baris jadual dengan data hospital.
+     * `dataAsal`. Ia akan mengisi baris-baris jadual dengan data hospital.
      */
     function binaJadualDaftarHospital() {
+        // Kosongkan NOTA.TUNGGU
+        nota.innerHTML = "";
+
         // Kosongkan dan sedia elemen <tbody> untuk pembinaan jadual baru.
-        const badanJadual = ambil("badan-jadual-daftar-hospital");
         badanJadual.innerHTML = "";
 
+        // Data hospital yang terpilih sahaja akan dipaparkan
+        const hospitalTerpilih = tapisDataHospital();
+
+        // Iterasi melalui setiap rekod hospital dalam data.
+        hospitalTerpilih.forEach(rekod => {
+            const baris = binaBarisJadual(rekod);
+
+            // Tambahkan baris yang telah diisi ke dalam badan jadual.
+            badanJadual.appendChild(baris);
+        });
+    }
+
+    function binaBarisJadual(rekod) {
+        // Cipta elemen baris jadual (<tr>).
+        let baris = document.createElement('tr');
+
+        // Cipta elemen sel jadual (<td>) untuk setiap lajur.
+        let lajurNama = document.createElement('td');
+        let lajurAlamat = document.createElement('td');
+        let lajurAkre = document.createElement('td');
+        let lajurTarikh = document.createElement('td');
+
+        // Dapatkan id dan nama hospital daripada rekod.
+        let nama = rekod[2];
+        // Jika terdapat pautan laman web hospital, jadikan nama sebagai pautan.
+        let namaLink = rekod[3]? nama.link(rekod[3]) : nama;
+
+        // Teks untuk pautan buku panduan.
+        let panduan = "[ Buku Panduan ]";
+        // Jika terdapat pautan buku panduan, jadikan teks sebagai pautan.
+        let panduanLink = panduan.link(rekod[4]);
+
+        // Set kandungan sel nama. Jika terdapat pautan panduan, gabungkan nama dan pautan panduan.
+        let dataNama = rekod[0] + '</br>' + namaLink;
+        lajurNama.innerHTML = rekod[4]?
+            dataNama + '</br>' + panduanLink
+            : dataNama;
+
+        // Gabungkan bahagian-bahagian alamat yang tidak kosong dengan pemisah <br>.
+        lajurAlamat.innerHTML = [rekod[5], rekod[6], rekod[7]].filter(Boolean).join('</br>');
+
+        // Teks untuk jenis akreditasi.
+        let iso = "MS ISO 15189";
+        let msqh = "MSQH";
+        let phlas = "PHLAS";
+
+        // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
+        let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE" && rekod[10]=="TRUE")
+            ? iso + '</br>' + msqh + '</br>' + phlas
+            : (rekod[8]=="TRUE" && rekod[9]=="TRUE")? iso + '</br>' + msqh
+            : (rekod[8]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + phlas
+            : rekod[8]=="TRUE"? iso
+            : rekod[9]=="TRUE"? msqh
+            : rekod[10]=="TRUE"? phlas
+            : "-";
+
+        // Set kandungan sel akreditasi.
+        lajurAkre.innerHTML = akre;
+
+        // Set kandungan sel tarikh kemas kini.
+        lajurTarikh.innerHTML = rekod[12] + '</br>';
+
+        // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
+        // Butang ubah mengandungi maklumat ID Hospital.
+        // Butang ubah akan mengaktifkan modal Daftar Hospital.
+        let butang_ubah = document.createElement('button');
+        butang_ubah.innerHTML = "Ubah";
+        butang_ubah.dataset.idHospital = rekod[0];
+        butang_ubah.setAttribute("type", "button");
+        butang_ubah.setAttribute("class", "btn btn-outline-warning");
+        butang_ubah.setAttribute("data-bs-toggle", "modal");
+        butang_ubah.setAttribute("data-bs-target", "#modalDaftarHospital");
+        butang_ubah.addEventListener("click", e => paparkanDataHospital(e.target));
+        lajurTarikh.appendChild(butang_ubah);
+
+        // Tambahkan setiap sel ke dalam baris.
+        baris.appendChild(lajurNama);
+        baris.appendChild(lajurAlamat);
+        baris.appendChild(lajurAkre);
+        baris.appendChild(lajurTarikh);
+
+        return baris;
+    }
+
+    /*=================
+    6. Pemprosesan Data
+    =================*/
+    /**
+     * Menapis senarai hospital berdasarkan kata kunci carian.
+     * 
+     * @returns {Array<Array<any>>} Array 2D yang mengandungi rekod hospital yang memenuhi kriteria carian
+     * 
+     * @description
+     * LOGIK PENAPISAN:
+     * 1. Membahagi input carian kepada perkataan individu
+     * 2. Memeriksa setiap rekod hospital untuk:
+     *    - Nama hospital (kolum 2)
+     *    - Alamat hospital (kolum 5)
+     * 3. Hanya rekod yang mengandungi SEMUA perkataan carian (dalam mana-mana medan) akan dipulangkan
+     * 
+     * @example
+     * // Cari hospital mengandungi "kuala" DAN "pusat"
+     * inputCarian.value = "kuala pusat";
+     * const hasil = tapisDataHospital();
+     * 
+     * @note
+     * - Pencarian adalah case-insensitive
+     * - Mengembalikan semua rekod jika input carian ialah kosong
+     * - Mengembalikan jadual kosong jika tida rekod yang sepadan dijumpai
+     * - Menggunakan operasi AND untuk perkataan berganda
+     */
+    function tapisDataHospital() {
         // Dapatkan nilai carian dan proses penapisan
-        let carian = ambil("cariHospital").value.toLowerCase();
-        const carianPerkataan = carian.split(/\s+/).filter(perkataan => perkataan); // Asingkan setiap perkataan
-        
-        const data = dataAsal.filter(h => {
+        const carianPerkataan = inputCarian.value.toLowerCase().match(/\S+/g) || [];  // Asingkan setiap perkataan
+
+        return dataAsal.filter(h => {
             const nama = h[2].toLowerCase();
             const alamat = h[5].toLowerCase();
 
@@ -55,81 +212,11 @@
                     alamat.includes(perkataan)
                 );
         });
-
-        // Iterasi melalui setiap rekod hospital dalam data.
-        data.forEach(rekod => {
-            // Cipta elemen baris jadual (<tr>).
-            let baris = buat('tr');
-
-            // Cipta elemen sel jadual (<td>) untuk setiap lajur.
-            let lajurNama = buat('td');
-            let lajurAlamat = buat('td');
-            let lajurAkre = buat('td');
-            let lajurTarikh = buat('td');
-
-            // Dapatkan id dan nama hospital daripada rekod.
-            let nama = rekod[2];
-            // Jika terdapat pautan laman web hospital, jadikan nama sebagai pautan.
-            let namaLink = rekod[3]? nama.link(rekod[3]) : nama;
-
-            // Teks untuk pautan buku panduan.
-            let panduan = "[ Buku Panduan ]";
-            // Jika terdapat pautan buku panduan, jadikan teks sebagai pautan.
-            let panduanLink = panduan.link(rekod[4]);
-
-            // Set kandungan sel nama. Jika terdapat pautan panduan, gabungkan nama dan pautan panduan.
-            let dataNama = rekod[0] + '</br>' + namaLink;
-            lajurNama.innerHTML = rekod[4]?
-                dataNama + '</br>' + panduanLink
-                : dataNama;
-            
-            // Gabungkan bahagian-bahagian alamat yang tidak kosong dengan pemisah <br>.
-            lajurAlamat.innerHTML = [rekod[5], rekod[6], rekod[7]].filter(Boolean).join('</br>');
-
-            // Teks untuk jenis akreditasi.
-            let iso = "MS ISO 15189";
-            let msqh = "MSQH";
-            let phlas = "PHLAS";
-
-            // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
-            let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + msqh + '</br>' + phlas
-                : (rekod[8]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + phlas
-                : rekod[8]=="TRUE"? iso
-                : rekod[9]=="TRUE"? msqh
-                : rekod[10]=="TRUE"? phlas
-                : "-";
-            
-            // Set kandungan sel akreditasi.
-            lajurAkre.innerHTML = akre;
-
-            // Set kandungan sel tarikh kemas kini.
-            lajurTarikh.innerHTML = rekod[12] + '</br>';
-
-            // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
-            // Butang ubah mengandungi maklumat ID Hospital.
-            // Butang ubah akan mengaktifkan modal Daftar Hospital.
-            let butang_ubah = buat('button');
-            butang_ubah.innerHTML = "Ubah";
-            butang_ubah.dataset.idHospital = rekod[0];
-            butang_ubah.setAttribute("type", "button");
-            butang_ubah.setAttribute("class", "btn btn-outline-warning");
-            butang_ubah.setAttribute("data-bs-toggle", "modal");
-            butang_ubah.setAttribute("data-bs-target", "#modalDaftarHospital");
-            butang_ubah.addEventListener("click", e => paparkanDataHospital(e.target));
-            lajurTarikh.appendChild(butang_ubah);
-
-            // Tambahkan setiap sel ke dalam baris.
-            baris.appendChild(lajurNama);
-            baris.appendChild(lajurAlamat);
-            baris.appendChild(lajurAkre);
-            baris.appendChild(lajurTarikh);
-
-            // Tambahkan baris yang telah diisi ke dalam badan jadual.
-            badanJadual.appendChild(baris);
-        });
     }
 
-
+    /*================
+    7. Pentadbir Modal
+    ================*/
     /**
      * Menyediakan modal pendaftaran hospital baharu dengan:
      * - Setkan tajuk modal
@@ -139,27 +226,27 @@
      */
     function daftarHospital() {
         // Set tajuk modal
-        ambil("tajukModal").innerHTML = "Pendaftaran Hospital Baharu";
+        modal.tajuk.innerHTML = "Pendaftaran Hospital Baharu";
 
         // Kosongkan semua input
-        let butiranLama = ambil("modalDaftarHospital").querySelectorAll("input");
+        let butiranLama = modal.daftarHospital.querySelectorAll("input");
         butiranLama.forEach((data) => data.value = "");
 
         // Reset checkbox
-        ambil("msiso").checked = false;
-        ambil("msqh").checked = false;
-        ambil("phlas").checked = false;
+        borang.msiso.checked = false;
+        borang.msqh.checked = false;
+        borang.phlas.checked = false;
 
         // Tunjukkan nota kunci (untuk pendaftaran baharu sahaja)
-        ambil("notaKunci").style.display = "block";
+        modal.notaKunci.style.display = "block";
 
         // Set jenis operasi kepada "baru" untuk fungsi hantar()
-        ambil("butangHantar").dataset.hospital = "baru";
-        ambil("butangHantar").dataset.ubat = "";
-        ambil("butangHantar").dataset.idHospital = "";
+        modal.butangHantar.dataset.hospital = URUSAN.DAFTAR;
+        modal.butangHantar.dataset.ubat = "";
+        modal.butangHantar.dataset.idHospital = "";
     }
 
-    
+
     /**
      * Memaparkan data hospital sedia ada dalam modal untuk pengemaskinian.
      * 
@@ -179,29 +266,30 @@
         let dataHospital = dataAsal.filter(hospital => hospital[0] === idHospital)[0];
 
         // UI: Set tajuk dan nilai form
-        ambil("tajukModal").innerHTML = "Kemaskini Data Hospital";
-        ambil("namaHospital").value = dataHospital[2];
-        ambil("wwwHospital").value = dataHospital[3];
-        ambil("wwwPanduan").value = dataHospital[4];
-        ambil("alamat").value = dataHospital[5];
-        ambil("emel").value = dataHospital[6];
-        ambil("telPejabat").value = dataHospital[7];
-        (dataHospital[8]==="TRUE")? ambil("msiso").checked=true : ambil("msiso").checked=false;
-        (dataHospital[9]==="TRUE")? ambil("msqh").checked=true : ambil("msqh").checked=false;
-        (dataHospital[10]==="TRUE")? ambil("phlas").checked=true : ambil("phlas").checked=false;
+        modal.tajuk.innerHTML = "Kemaskini Data Hospital";
+        borang.namaHospital.value = dataHospital[2];
+        borang.wwwHospital.value = dataHospital[3];
+        borang.wwwPanduan.value = dataHospital[4];
+        borang.alamat.value = dataHospital[5];
+        borang.emel.value = dataHospital[6];
+        borang.tel.value = dataHospital[7];
+        (dataHospital[8]==="TRUE")? borang.msiso.checked=true : borang.msiso.checked=false;
+        (dataHospital[9]==="TRUE")? borang.msqh.checked=true : borang.msqh.checked=false;
+        (dataHospital[10]==="TRUE")? borang.phlas.checked=true : borang.phlas.checked=false;
 
         // Persediaan untuk pengesahan
-        let butangHantar = ambil("butangHantar");
-        butangHantar.dataset.idHospital = dataHospital[0];  // ID Hospital
-        butangHantar.dataset.hospital = "lama";  // Penanda operasi
-        butangHantar.dataset.ubat = dataHospital[1];  // Rujukan kesahihan
+        modal.butangHantar.dataset.idHospital = dataHospital[0];  // ID Hospital
+        modal.butangHantar.dataset.hospital = URUSAN.KEMASKINI;  // Penanda operasi
+        modal.butangHantar.dataset.ubat = dataHospital[1];  // Rujukan kesahihan
 
         // Jangan paparkan nota dan nilai kunci
-        ambil("Kunci").value = "";
-        ambil("notaKunci").style.display = "none";
+        borang.kunci.value = "";
+        modal.notaKunci.style.display = "none";
     }
 
-
+    /*===============
+    8. Fungsi Utiliti
+    ===============*/
     /**
      * Menyulitkan input pengguna menjadi hash SHA-256 (hex string).
      * 
@@ -235,10 +323,18 @@
 
     // Periksa sama ada `window.crypto.subtle` wujud (untuk enkripsi web).
     function bolehCerna() {
-        (window.crypto?.subtle)? alert("Tahniah! Boleh cerna.") : alert("Maaf, akan cirit!");
+        if (window.crypto?.subtle) {
+            cerna = true;
+            alert(NOTA.TAHNIAH);
+        } else {
+            cerna = false;
+            alert(NOTA.MAAF);
+        }
     }
 
-
+    /*====================
+    9. Pentadbir Peristiwa
+    ====================*/
     /**
      * Mengendalikan penghantaran data hospital (pendaftaran/kemaskini) berdasarkan jenis urusan.
      * 
@@ -264,76 +360,57 @@
         let ubat = butangIni.dataset.ubat;  // Hash kunci sedia ada dari GS
 
         // 2. Kumpulkan data dari borang
-        let namaHospital = ambil("namaHospital").value;
-        let wwwHospital = ambil("wwwHospital").value;
-        let wwwPanduan = ambil("wwwPanduan").value;
-        let alamat = ambil("alamat").value;
-        let emel = ambil("emel").value;
-        let telPejabat = ambil("telPejabat").value;
-        let msiso = ambil("msiso").checked;
-        let msqh = ambil("msqh").checked;
-        let phlas = ambil("phlas").checked;
+        let namaHospital = borang.namaHospital.value;
+        let wwwHospital = borang.wwwHospital.value;
+        let wwwPanduan = borang.wwwPanduan.value;
+        let alamat = borang.alamat.value;
+        let emel = borang.emel.value;
+        let telPejabat = borang.tel.value;
+        let msiso = borang.msiso.checked;
+        let msqh = borang.msqh.checked;
+        let phlas = borang.phlas.checked;
         let tarikh = new Date().toISOString().split("T")[0];
-        let kunci = ambil("Kunci").value;
+        let kunci = borang.kunci.value;
 
         // 3. Susun data untuk Google Sheets
         let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
 
         // 4. Proses berdasarkan jenis urusan
         makanCerna(kunci).then(makanan => {
-            if (jenisUrusan == "lama") {
+            if (jenisUrusan == URUSAN.KEMASKINI) {
                 if (ubat == makanan) {  // Bandingkan hash kunci input vs hash sedia ada
                     resetUI();
                     google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
-                    ambil("cariHospital").value = namaHospital;  // Paparkan hospital terlibat sahaja
-                } else {alert("Anda tiada kebenaran untuk mengubah data hospital ini.")}
-            } else if (jenisUrusan == "baru") {
+                    inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
+                } else {alert(NOTA.LARANG)}
+            } else if (jenisUrusan == URUSAN.DAFTAR) {
                 // Daftar hospital baru
                 resetUI();
                 let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
                 google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
-                ambil("cariHospital").value = namaHospital;  // Paparkan hospital terlibat sahaja
+                inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
             }
         });
 
         // Fungsi bantu untuk reset UI
         function resetUI() {
             dataAsal = "";  // Kosongkan cache global
-            ambil("badan-jadual-daftar-hospital").innerHTML = "";  // Kosongkan jadual
-            ambil("butangX").click();  // Tutup modal
+            nota.innerHTML = NOTA.TUNGGU;
+            badanJadual.innerHTML = "";  // Kosongkan jadual
+            modal.butangX.click();  // Tutup modal
         }
     }
 
-
+    /*===========
+    10. Permulaan
+    ===========*/
     /**
-     * Fungsi success handler yang dipanggil setelah data dari Google Sheets
-     * berjaya diterima oleh `google.script.run.ambilData()`. Ia menyimpan data
-     * yang diterima ke dalam pembolehubah global `dataAsal` dan kemudian
-     * memanggil fungsi `binaJadualDaftarHospital()` untuk memaparkan data
-     * dalam bentuk jadual.
-     *
-     * @param {Array<Array<any>> | undefined} dataDariGS Data yang diterima dari Google Sheets.
-     * Struktur data ini sama seperti yang dijelaskan untuk `dataAsal`.
+     * Event listener yang dijalankan apabila DOM telah dimuat sepenuhnya.
+     * Ia memanggil fungsi `ambilData` dari skrip Google Apps
+     * melalui `google.script.run` dan menggunakan `simpanData` sebagai
+     * success handler untuk memproses data yang dikembalikan.
      */
-    function simpanData(dataDariGS) {
-        bolehCerna();
-        // Simpan data yang diterima dari Google Sheets ke dalam pembolehubah global.
-        dataAsal = dataDariGS;
-        dataAsal.sort((a, b) => {return a[0] - b[0]});
-
-        // Bina jadual pendaftaran hospital menggunakan data yang telah disimpan.
-        binaJadualDaftarHospital();
-    }
-
-
-    // Cipta dan kembalikan elemen HTML berdasarkan tag
-    function buat(unsur) {
-        return document.createElement(unsur);
-    }
-
-
-    // Dapatkan elemen dari DOM berdasarkan ID
-    function ambil(id) {
-        return document.getElementById(id);
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+        google.script.run.withSuccessHandler(simpanData).ambilData(1);
+    });
 </script>
