@@ -121,10 +121,10 @@
         nota.innerHTML = NOTA.TUNGGU;
         let idHospital = inputCarian.value;
 
-        let dataH = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+        let dataH = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
-        if (dataH.length == 1) {
-            dataHospitalTerpilih = dataH;
+        if (dataH != undefined) {
+            dataHospitalTerpilih = [dataH];
             google.script.run.withSuccessHandler(binaJadualCarian).ambilData(3, [idHospital]);
         } else {
             tungguAlert();
@@ -207,12 +207,12 @@
             modal.ujian.butangHantar.disabled = true;
             modal.ujian.butangHantar.dataset.ubat = "";
         } else {
-            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
-            if (hospital.length == 1) {
-                borang.ujian.namaHospital.value = hospital[0][2];
+            if (hospital != undefined) {
+                borang.ujian.namaHospital.value = hospital[2];
                 modal.ujian.butangHantar.disabled = false;
-                modal.ujian.butangHantar.dataset.ubat = hospital[0][1];
+                modal.ujian.butangHantar.dataset.ubat = hospital[1];
 
             } else {
                 borang.ujian.namaHospital.value = NOTA.IDTIDAKSAH;
@@ -246,12 +246,12 @@
             modal.perjanjian.butangHantar.dataset.ubat = "";
 
         } else {
-            let hospital = dataHospital.filter(rekod => {return rekod[0] == idHospital});
+            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
-            if ((hospital.length == 1) && (hospital[0][2] != namaHospitalRujukan)) {
-                borang.perjanjian.namaMerujuk.value = hospital[0][2];
+            if ((hospital != undefined) && (hospital[2] != namaHospitalRujukan)) {
+                borang.perjanjian.namaMerujuk.value = hospital[2];
                 modal.perjanjian.butangHantar.disabled = false;
-                modal.perjanjian.butangHantar.dataset.ubat = hospital[0][1];
+                modal.perjanjian.butangHantar.dataset.ubat = hospital[1];
 
             } else {
                 borang.perjanjian.namaMerujuk.value = NOTA.IDTIDAKSAH;
@@ -346,13 +346,13 @@
         let lajurStatus = document.createElement("td");
         let lajurTarikh = document.createElement("td");
 
-        let dataHosp = dataHospitalTerpilih.filter(hosp => {return hosp[0] == rekod[1]});
+        let dataHosp = dataHospitalTerpilih.find(hosp => {return hosp[0] == rekod[1]});
 
-        if (dataHosp.length == 0) {
+        if (dataHosp == undefined) {
             return;
         }
 
-        lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[0][2];
+        lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[2];
         
         lajurUjian.innerHTML = rekod[2];
 
@@ -363,7 +363,7 @@
         let butangUbah = document.createElement("button");
         butangUbah.innerHTML = "Ubah";
         butangUbah.dataset.idUjian = rekod[0];
-        butangUbah.dataset.ubat = dataHosp[0][1];
+        butangUbah.dataset.ubat = dataHosp[1];
         butangUbah.setAttribute("type", "button");
         butangUbah.setAttribute("class", "btn btn-outline-warning");
         butangUbah.setAttribute("data-bs-toggle", "modal");
@@ -374,7 +374,7 @@
         butangMohon.innerHTML = "Mohon";
         butangMohon.dataset.idUjian = rekod[0];
         butangMohon.dataset.namaUjian = rekod[2];
-        butangMohon.dataset.namaHospital = dataHosp[0][2];
+        butangMohon.dataset.namaHospital = dataHosp[2];
         butangMohon.disabled = rekod[5]== STATUS_UJIAN.AKTIF? false : true;
         butangMohon.setAttribute("type", "button");
         butangMohon.setAttribute("class", "btn btn-outline-warning");
@@ -451,8 +451,8 @@
         let idUjian = butangIni.dataset.idUjian;
 
         // Cari rekod yang sepadan
-        let rekodUjian = dataUjian.filter(rekod => {return rekod[0] == idUjian})[0];
-        let rekodHospital = dataHospital.filter(rekod => {return rekod[0] == rekodUjian[1]})[0];
+        let rekodUjian = dataUjian.find(rekod => {return rekod[0] == idUjian});
+        let rekodHospital = dataHospital.find(rekod => {return rekod[0] == rekodUjian[1]});
 
         // Bina UI modal
         modal.ujian.tajuk.innerHTML = "Kemaskini Data Ujian";
@@ -694,9 +694,9 @@
         alert(NOTA.TIADAREKOD);
     }
 
-    /*===========
-    11. Permulaan
-    ===========*/
+    /*===============
+    11. Permulaan DOM
+    ===============*/
 
     /**
      * Permulaan sistem apabila halaman selesai dimuatkan

@@ -1,36 +1,48 @@
 <script>
+    /*==================
+    1. Pemalar & Tetapan
+    ==================*/
+    const HOSPITAL = {
+        RUJUKAN: "Rujukan",
+        MERUJUK: "Merujuk",
+    }
+    const STATUS_PERJANJIAN = {
+        BATAL: "Batal",
+        LULUS: "Lulus",
+        MOHON: "Mohon",
+        TOLAK: "Tolak",
+    }
+    const NOTA = {
+        IDTIDAKSAH: "ID Hospital tidak sah",
+        LARANGANLIHAT: "Anda tiada kebenaran untuk melihat rekod perjanjian hospital ini.",
+        LARANGANUBAH: "Anda tiada kebenaran untuk mengubah status perjanjian hospital ini.",
+        MASUKKUNCI: "Sila masukkan kunci anda",
+        TUNGGU: "... Sila tunggu sebentar ...",
+    }
+
+    /*============
+    2. Pemilih DOM
+    ============*/
+    const badanJadual = document.getElementById("badan-jadual-perjanjian");
+    const inputCarian = {
+        butangPapar: document.getElementById("butangPapar"),
+        idHospital: document.getElementById("idHospital"),
+        namaHospital: document.getElementById("namaHospital"),
+        perananHospital: document.getElementById("hospitalSebagai"),
+    }
+    const namaLajurMakmal = document.getElementById("namaLajurMakmal");
+    const nota = document.getElementById("nota");
+
+    /*====================
+    3. Persekitaran Global
+    ====================*/
     let dataHospital;
 
-    const tunggu = "... Sila tunggu sebentar ...";
-
-
-    document.addEventListener('DOMContentLoaded', () => {
-        ambil("nota").innerHTML = tunggu;
-        google.script.run.withSuccessHandler(simpanData).ambilData(2);
-    })
-
-
+    /*==================
+    4. Fungsi Utama
+    ==================*/
     function binaJadualRujukan(dataDariGS) {
-        function ciptaTambahSifatButang(namaButang) {
-            let butang = buat("button");
-            butang.setAttribute("type", "button");
-            butang.classList.add("btn", "btn-outline-warning");
-            butang.dataset.idPerjanjian = rekod[0];
-            butang.addEventListener("click", e => hantarTindakan(e.target));
-            butang.innerHTML = namaButang;
-
-            return butang;
-        }
-
-        function ciptaKumpulanButang() {
-            let kumpulan = buat("div");
-            kumpulan.classList.add("btn-group", "btn-group-sm");
-            kumpulan.setAttribute("role", "group");
-
-            return kumpulan;
-        }
-
-        ambil("nota").innerHTML = "";
+        nota.innerHTML = "";
 
         let dataPerjanjian = dataDariGS[0];
 
@@ -45,125 +57,131 @@
         let dataUjian = dataDariGS[1];
         let sebagai = dataDariGS[2];
 
-        let badanJadual = ambil("badan-jadual-perjanjian");
         badanJadual.innerHTML = "";
 
         for (rekod of dataPerjanjian) {
-            let baris = buat("tr");
-
-            let selMakmal = buat("td");
-            let selUjian = buat("td");
-            let selStatus = buat("td");
-            let selTindakan = buat("td");
-
-            let kumpulanButangMerujuk = ciptaKumpulanButang();
-            let butangMohon = ciptaTambahSifatButang("Mohon");
-            let butangBatal = ciptaTambahSifatButang("Batal");
-            kumpulanButangMerujuk.appendChild(butangMohon);
-            kumpulanButangMerujuk.appendChild(butangBatal);
-
-            let kumpulanButangRujukan = ciptaKumpulanButang();
-            let butangLulus = ciptaTambahSifatButang("Lulus");
-            let butangTolak = ciptaTambahSifatButang("Tolak");
-            kumpulanButangRujukan.appendChild(butangLulus);
-            kumpulanButangRujukan.appendChild(butangTolak);
-
-            let dataU = dataUjian.find(ujian => {return ujian[0] == rekod[2]});
-            let hospitalRujukan = dataHospital.find(hosp => {return hosp[0] == dataU[0][1]});
-            let hospitalMerujuk = dataHospital.find(hosp => {return hosp[0] == rekod[1]});
-            let idHospital;
-            let namaHospital;
-
-            if (sebagai == "Merujuk") {
-                idHospital = dataU[0][1];
-                namaHospital = hospitalRujukan[0][2];
-                kumpulanButangRujukan.classList.add("d-none");
-
-            } else if (sebagai == "Rujukan") {
-                idHospital = rekod[1];
-                namaHospital = hospitalMerujuk[0][2];
-                kumpulanButangMerujuk.classList.add("d-none");
-            }
-
-            selMakmal.innerHTML = idHospital + "</br>" + namaHospital;
-
-            let idUjian = rekod[2];
-            let namaUjian = dataU[0][2];
-            selUjian.innerHTML = idUjian + "</br>" + namaUjian;
-
-            selStatus.innerHTML = rekod[3] + "</br>" + rekod[4];
-
-            selTindakan.appendChild(kumpulanButangMerujuk);
-            selTindakan.appendChild(kumpulanButangRujukan);
-
-            baris.appendChild(selMakmal);
-            baris.appendChild(selUjian);
-            baris.appendChild(selStatus);
-            baris.appendChild(selTindakan);
-
-            if(rekod[3] == "Mohon") {
-                baris.classList.add("table-success");
-            } else if (rekod[3] == "Tolak") {
-                baris.classList.add("table-danger");
-            } else if (rekod[3] == "Batal") {
-                baris.classList.add("table-secondary");
-            }
-
+            let baris = binaBarisJadual(rekod, dataUjian, sebagai);
             badanJadual.appendChild(baris);
         }
     }
 
+    function binaBarisJadual(rekod, dataUjian, sebagai) {
+        let baris = document.createElement("tr");
+
+        let selMakmal = document.createElement("td");
+        let selUjian = document.createElement("td");
+        let selStatus = document.createElement("td");
+        let selTindakan = document.createElement("td");
+
+        let kumpulanButangMerujuk = ciptaKumpulanButang();
+        let butangMohon = ciptaTambahSifatButang("Mohon");
+        let butangBatal = ciptaTambahSifatButang("Batal");
+        kumpulanButangMerujuk.appendChild(butangMohon);
+        kumpulanButangMerujuk.appendChild(butangBatal);
+
+        let kumpulanButangRujukan = ciptaKumpulanButang();
+        let butangLulus = ciptaTambahSifatButang("Lulus");
+        let butangTolak = ciptaTambahSifatButang("Tolak");
+        kumpulanButangRujukan.appendChild(butangLulus);
+        kumpulanButangRujukan.appendChild(butangTolak);
+
+        let dataU = dataUjian.find(ujian => {return ujian[0] == rekod[2]});
+        let hospitalRujukan = dataHospital.find(hosp => {return hosp[0] == dataU[1]});
+        let hospitalMerujuk = dataHospital.find(hosp => {return hosp[0] == rekod[1]});
+        let idHospital;
+        let namaHospital;
+
+        if (sebagai == HOSPITAL.MERUJUK) {
+            idHospital = dataU[1];
+            namaHospital = hospitalRujukan[2];
+            kumpulanButangRujukan.classList.add("d-none");
+
+        } else if (sebagai == HOSPITAL.RUJUKAN) {
+            idHospital = rekod[1];
+            namaHospital = hospitalMerujuk[2];
+            kumpulanButangMerujuk.classList.add("d-none");
+        }
+
+        selMakmal.innerHTML = idHospital + "</br>" + namaHospital;
+
+        let idUjian = rekod[2];
+        let namaUjian = dataU[2];
+        selUjian.innerHTML = idUjian + "</br>" + namaUjian;
+
+        selStatus.innerHTML = rekod[3] + "</br>" + rekod[4];
+
+        selTindakan.appendChild(kumpulanButangMerujuk);
+        selTindakan.appendChild(kumpulanButangRujukan);
+
+        baris.appendChild(selMakmal);
+        baris.appendChild(selUjian);
+        baris.appendChild(selStatus);
+        baris.appendChild(selTindakan);
+
+        if(rekod[3] == STATUS_PERJANJIAN.MOHON) {
+            baris.classList.add("table-success");
+        } else if (rekod[3] == STATUS_PERJANJIAN.TOLAK) {
+            baris.classList.add("table-danger");
+        } else if (rekod[3] == STATUS_PERJANJIAN.BATAL) {
+            baris.classList.add("table-secondary");
+        }
+
+        return baris;
+    }
 
     function hantarTindakan(butangIni) {
-        ambil("nota").innerHTML = tunggu;
+        nota.innerHTML = NOTA.TUNGGU;
 
-        let kunci = prompt("Sila masukkan kunci anda");
+        let kunci = prompt(NOTA.MASUKKUNCI);
 
         let idPerjanjian = butangIni.dataset.idPerjanjian;
         let statusPerjanjian = butangIni.innerHTML;
-        let idHospital = ambil("idHospital").value;
-        let sebagai = ambil("hospitalSebagai").value;
-        let ubat = ambil("butangPapar").dataset.ubat;
+        let idHospital = inputCarian.idHospital.value;
+        let sebagai = inputCarian.perananHospital.value;
+        let ubat = inputCarian.butangPapar.dataset.ubat;
         let tarikh = new Date().toISOString().split("T")[0];
 
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert("Anda tiada kebenaran untuk mengubah status perjanjian hospital ini.");
-                ambil("nota").innerHTML = "";
-            
-            } else {
-                google.script.run.withSuccessHandler(binaJadualRujukan).kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai);
+                alert(NOTA.LARANGANUBAH);
+                nota.innerHTML = "";
+                return;
             }
+
+            google.script.run.withSuccessHandler(binaJadualRujukan).kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai);
         });
     }
 
-
     function paparPerjanjian() {
-        ambil("nota").innerHTML = tunggu;
+        nota.innerHTML = NOTA.TUNGGU;
 
-        let idHospital = ambil("idHospital").value;
-        let sebagai = ambil("hospitalSebagai").value;
-        let ubat = ambil("butangPapar").dataset.ubat;
+        let idHospital = inputCarian.idHospital.value;
+        let sebagai = inputCarian.perananHospital.value;
+        let ubat = inputCarian.butangPapar.dataset.ubat;
 
         resetLajurNamaMakmal();
 
-        let kunci = prompt("Sila masukkan kunci anda");
+        let kunci = prompt(NOTA.MASUKKUNCI);
 
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert("Anda tiada kebenaran untuk melihat rekod perjanjian hospital ini.");
-                ambil("nota").innerHTML = "";
-
-            } else if (sebagai == "Merujuk") {
+                alert(NOTA.LARANGANLIHAT);
+                nota.innerHTML = "";
+                return;
+            }
+            
+            if (sebagai == HOSPITAL.MERUJUK) {
                 google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(5, idHospital);
 
-            } else if (sebagai == "Rujukan") {
+            } else if (sebagai == HOSPITAL.RUJUKAN) {
                 google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(6, idHospital);
             }
         });
     }
 
-
+    /*===============
+    5. Fungsi Utiliti
+    ===============*/
     async function makanCerna(ubat) {
         let ubatKod = new TextEncoder().encode(ubat.trim());
         let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
@@ -173,53 +191,64 @@
         return ubatHex;
     }
 
-
     function paparNamaHospital() {
-        let idHospital = ambil("idHospital").value;
+        let idHospital = inputCarian.idHospital.value;
 
         if (idHospital.length < 6) {
-            ambil("namaHospital").value = "";
-            ambil("butangPapar").dataset.ubat = "";
-            ambil("butangPapar").disabled = true;
+            inputCarian.namaHospital.value = "";
+            inputCarian.butangPapar.dataset.ubat = "";
+            inputCarian.butangPapar.disabled = true;
 
         } else {
             let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
-            if (hospital.length == 1) {
-                ambil("namaHospital").value = hospital[0][2];
-                ambil("butangPapar").dataset.ubat = hospital[0][1];
-                ambil("butangPapar").disabled = false;
+            if (hospital != undefined) {
+                inputCarian.namaHospital.value = hospital[2];
+                inputCarian.butangPapar.dataset.ubat = hospital[1];
+                inputCarian.butangPapar.disabled = false;
             
             } else {
-                ambil("namaHospital").value = "ID Hospital tidak sah";
-                ambil("butangPapar").dataset.ubat = "";
-                ambil("butangPapar").disabled = true;
+                inputCarian.namaHospital.value = NOTA.IDTIDAKSAH;
+                inputCarian.butangPapar.dataset.ubat = "";
+                inputCarian.butangPapar.disabled = true;
             }
         }
     }
 
-
     function simpanData(dataDariGS) {
         dataHospital = dataDariGS;
-        ambil("nota").innerHTML = "";
+        nota.innerHTML = "";
     }
-
 
     function resetLajurNamaMakmal() {
-        let namaLajurMakmal = ambil("namaLajurMakmal");
-        let hospitalSebagai = ambil("hospitalSebagai").value;
-        namaLajurMakmal.innerHTML = hospitalSebagai == "Merujuk"? "Nama Makmal Rujukan" : "Nama Makmal Merujuk";
+        let hospitalSebagai = inputCarian.perananHospital.value;
+        namaLajurMakmal.innerHTML = hospitalSebagai == HOSPITAL.MERUJUK? "Nama Makmal Rujukan" : "Nama Makmal Merujuk";
     }
 
+    function ciptaTambahSifatButang(namaButang) {
+        let butang = document.createElement("button");
+        butang.setAttribute("type", "button");
+        butang.classList.add("btn", "btn-outline-warning");
+        butang.dataset.idPerjanjian = rekod[0];
+        butang.addEventListener("click", e => hantarTindakan(e.target));
+        butang.innerHTML = namaButang;
 
-    // Dapatkan elemen dari DOM berdasarkan ID
-    function ambil(id) {
-        return document.getElementById(id);
+        return butang;
     }
 
+    function ciptaKumpulanButang() {
+        let kumpulan = document.createElement("div");
+        kumpulan.classList.add("btn-group", "btn-group-sm");
+        kumpulan.setAttribute("role", "group");
 
-    // Cipta dan kembalikan elemen HTML berdasarkan tag
-    function buat(unsur) {
-        return document.createElement(unsur);
+        return kumpulan;
     }
+
+    /*==============
+    6. Permulaan DOM
+    ==============*/
+    document.addEventListener('DOMContentLoaded', () => {
+        nota.innerHTML = NOTA.TUNGGU;
+        google.script.run.withSuccessHandler(simpanData).ambilData(2);
+    })
 </script>

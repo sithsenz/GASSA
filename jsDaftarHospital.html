@@ -263,7 +263,7 @@
      */
     function paparkanDataHospital(butangIni) {
         let idHospital = butangIni.dataset.idHospital;
-        let dataHospital = dataAsal.filter(hospital => hospital[0] === idHospital)[0];
+        let dataHospital = dataAsal.find(hospital => hospital[0] === idHospital);
 
         // UI: Set tajuk dan nilai form
         modal.tajuk.innerHTML = "Kemaskini Data Hospital";
@@ -401,9 +401,9 @@
         }
     }
 
-    /*===========
-    10. Permulaan
-    ===========*/
+    /*===============
+    10. Permulaan DOM
+    ===============*/
     /**
      * Event listener yang dijalankan apabila DOM telah dimuat sepenuhnya.
      * Ia memanggil fungsi `ambilData` dari skrip Google Apps
