@@ -41,24 +41,49 @@
     /*==================
     4. Fungsi Utama
     ==================*/
+    /**
+     * Membina dan memaparkan jadual perjanjian ujian berdasarkan data dari Google Sheets
+     * 
+     * @param {Array} dataDariGS - Array mengandungi:
+     *   [0]: dataPerjanjian - Senarai perjanjian
+     *   [1]: dataUjian - Senarai ujian berkaitan
+     *   [2]: sebagai - Peranan hospital ("Merujuk" atau "Rujukan")
+     * 
+     * @description
+     * 1. Mengosongkan nota dan badan jadual
+     * 2. Menguruskan data:
+     *   - Menyusun data perjanjian mengikut:
+     *     a) ID Hospital (ascending)
+     *     b) Status (descending)
+     * 3. Membina baris jadual untuk setiap rekod
+     * 
+     * @nota
+     * - Bergantung pada fungsi binaBarisJadual() untuk pembinaan HTML setiap baris
+     * - Mengubah DOM secara langsung melalui badanJadual
+     */
     function binaJadualRujukan(dataDariGS) {
+        // Kosongkan ruang notifikasi
         nota.innerHTML = "";
 
+        // Dapatkan dan uruskan data
         let dataPerjanjian = dataDariGS[0];
 
+        // Penyusunan data
         dataPerjanjian.sort((a, b) => {
-            if (a[1] == b[1]) {
-                return (a[3] < b[3])? 1 : (a[3] > b[3])? -1 : 0;
+            if (a[1] == b[1]) {  // Jika ID Hospital sama
+                return (a[3] < b[3])? 1 : (a[3] > b[3])? -1 : 0;  // Status descending
             } else {
-                return (a[1] < b[1])? -1 : (a[1] > b[1])? 1 : 0;
+                return (a[1] < b[1])? -1 : (a[1] > b[1])? 1 : 0;  // ID Hospital ascending
             }
         });
 
         let dataUjian = dataDariGS[1];
         let sebagai = dataDariGS[2];
 
+        // Kosongkan dan bina semula jadual
         badanJadual.innerHTML = "";
 
+        // Tambah setiap rekod sebagai baris jadual
         for (rekod of dataPerjanjian) {
             let baris = binaBarisJadual(rekod, dataUjian, sebagai);
             badanJadual.appendChild(baris);
