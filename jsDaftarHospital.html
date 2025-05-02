@@ -120,9 +120,9 @@
         let panduanLink = panduan.link(rekod[4]);
 
         // Set kandungan sel nama. Jika terdapat pautan panduan, gabungkan nama dan pautan panduan.
-        let dataNama = rekod[0] + '</br>' + namaLink;
+        let dataNama = `${rekod[0]}</br>${namaLink}`;
         lajurNama.innerHTML = rekod[4]?
-            dataNama + '</br>' + panduanLink
+            `${dataNama}</br>${panduanLink}`
             : dataNama;
 
         // Gabungkan bahagian-bahagian alamat yang tidak kosong dengan pemisah <br>.
@@ -135,9 +135,9 @@
 
         // Tentukan kandungan sel akreditasi berdasarkan status akreditasi.
         let akre = (rekod[8]=="TRUE" && rekod[9]=="TRUE" && rekod[10]=="TRUE")
-            ? iso + '</br>' + msqh + '</br>' + phlas
-            : (rekod[8]=="TRUE" && rekod[9]=="TRUE")? iso + '</br>' + msqh
-            : (rekod[8]=="TRUE" && rekod[10]=="TRUE")? iso + '</br>' + phlas
+            ? `${iso}</br>${msqh}</br>${phlas}`
+            : (rekod[8]=="TRUE" && rekod[9]=="TRUE")? `${iso}</br>${msqh}`
+            : (rekod[8]=="TRUE" && rekod[10]=="TRUE")? `${iso}</br>${phlas}`
             : rekod[8]=="TRUE"? iso
             : rekod[9]=="TRUE"? msqh
             : rekod[10]=="TRUE"? phlas
@@ -147,7 +147,7 @@
         lajurAkre.innerHTML = akre;
 
         // Set kandungan sel tarikh kemas kini.
-        lajurTarikh.innerHTML = rekod[12] + '</br>';
+        lajurTarikh.innerHTML = `${rekod[12]}</br>`;
 
         // Tambah butang ubah selepas tarikh dalam setiap sel tarikh kemas kini.
         // Butang ubah mengandungi maklumat ID Hospital.
@@ -163,10 +163,7 @@
         lajurTarikh.appendChild(butang_ubah);
 
         // Tambahkan setiap sel ke dalam baris.
-        baris.appendChild(lajurNama);
-        baris.appendChild(lajurAlamat);
-        baris.appendChild(lajurAkre);
-        baris.appendChild(lajurTarikh);
+        baris.append(lajurNama, lajurAlamat, lajurAkre, lajurTarikh);
 
         return baris;
     }
@@ -360,45 +357,45 @@
         let ubat = butangIni.dataset.ubat;  // Hash kunci sedia ada dari GS
 
         // 2. Kumpulkan data dari borang
-        let namaHospital = borang.namaHospital.value;
-        let wwwHospital = borang.wwwHospital.value;
-        let wwwPanduan = borang.wwwPanduan.value;
-        let alamat = borang.alamat.value;
-        let emel = borang.emel.value;
-        let telPejabat = borang.tel.value;
-        let msiso = borang.msiso.checked;
-        let msqh = borang.msqh.checked;
-        let phlas = borang.phlas.checked;
+        const dataBorang = {
+        namaHospital: borang.namaHospital.value,
+        wwwHospital: borang.wwwHospital.value,
+        wwwPanduan: borang.wwwPanduan.value,
+        alamat: borang.alamat.value,
+        emel: borang.emel.value,
+        telPejabat: borang.tel.value,
+        msiso: borang.msiso.checked,
+        msqh: borang.msqh.checked,
+        phlas: borang.phlas.checked,
+        }
         let tarikh = new Date().toISOString().split("T")[0];
         let kunci = borang.kunci.value;
 
         // 3. Susun data untuk Google Sheets
-        let dataBaru = [idHospital, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
+        let dataBaru = [idHospital, ...Object.values(dataBorang), "Aktif", tarikh];
 
         // 4. Proses berdasarkan jenis urusan
         makanCerna(kunci).then(makanan => {
-            if (jenisUrusan == URUSAN.KEMASKINI) {
-                if (ubat == makanan) {  // Bandingkan hash kunci input vs hash sedia ada
-                    resetUI();
-                    google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
-                    inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
-                } else {alert(NOTA.LARANG)}
-            } else if (jenisUrusan == URUSAN.DAFTAR) {
-                // Daftar hospital baru
-                resetUI();
-                let dataHospitalBaru = ["", makanan, namaHospital, wwwHospital, wwwPanduan, alamat, emel, telPejabat, msiso, msqh, phlas, "Aktif", tarikh];
-                google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
-                inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
+            // Bandingkan hash kunci input vs hash sedia ada
+            if (ubat != makanan) {
+                alert(NOTA.LARANG);
+                return;
             }
-        });
 
-        // Fungsi bantu untuk reset UI
-        function resetUI() {
+            let dataHospitalBaru = ["", makanan, ...Object.values(dataBorang), "Aktif", tarikh];
+
             dataAsal = "";  // Kosongkan cache global
             nota.innerHTML = NOTA.TUNGGU;
             badanJadual.innerHTML = "";  // Kosongkan jadual
             modal.butangX.click();  // Tutup modal
-        }
+            inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
+
+            if (jenisUrusan == URUSAN.KEMASKINI) {
+                google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
+            } else if (jenisUrusan == URUSAN.DAFTAR) {
+                google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
+            }
+        });
     }
 
     /*===============

@@ -6,11 +6,16 @@
         RUJUKAN: "Rujukan",
         MERUJUK: "Merujuk",
     }
-    const STATUS_PERJANJIAN = {
+    const STATUSPERJANJIAN = {
         BATAL: "Batal",
         LULUS: "Lulus",
         MOHON: "Mohon",
         TOLAK: "Tolak",
+    }
+    const KELASWARNA = {
+        [STATUSPERJANJIAN.BATAL]: "table-secondary",
+        [STATUSPERJANJIAN.MOHON]: "table-success",
+        [STATUSPERJANJIAN.TOLAK]: "table-danger",
     }
     const NOTA = {
         IDTIDAKSAH: "ID Hospital tidak sah",
@@ -90,31 +95,55 @@
         }
     }
 
+    /**
+     * Membina satu baris jadual untuk paparan perjanjian ujian
+     * 
+     * @param {Array} rekod - Data perjanjian [ID, IDHospital, IDUjian, Status, Tarikh]
+     * @param {Array} dataUjian - Senarai data ujian berkaitan
+     * @param {string} sebagai - Peranan hospital (HOSPITAL.MERUJUK/HOSPITAL.RUJUKAN)
+     * @returns {HTMLTableRowElement} Elemen <tr> yang telah dibina
+     * 
+     * @description
+     * 1. Membina struktur baris jadual dengan 4 lajur:
+     *    - Makmal: Papar ID dan nama hospital
+     *    - Ujian: Papar ID dan nama ujian
+     *    - Status: Status perjanjian dan tarikh
+     *    - Tindakan: Butang tindakan berdasarkan peranan
+     * 2. Warna baris berdasarkan status perjanjian
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - dataHospital: Data hospital global
+     *   - STATUS_PERJANJIAN: Pemalar status (MOHON/TOLAK/BATAL/LULUS)
+     *   - HOSPITAL: Pemalar peranan hospital
+     *   - Fungsi pembantu: ciptaKumpulanButang(), ciptaTambahSifatButang()
+     */
     function binaBarisJadual(rekod, dataUjian, sebagai) {
+        // 1. Bentuk asas baris jadual
         let baris = document.createElement("tr");
 
+        // 2. Cipta 4 sel asas
         let selMakmal = document.createElement("td");
         let selUjian = document.createElement("td");
         let selStatus = document.createElement("td");
         let selTindakan = document.createElement("td");
 
+        // 3. Sediakan kumpulan butang-butang tindakan
         let kumpulanButangMerujuk = ciptaKumpulanButang();
-        let butangMohon = ciptaTambahSifatButang("Mohon");
-        let butangBatal = ciptaTambahSifatButang("Batal");
-        kumpulanButangMerujuk.appendChild(butangMohon);
-        kumpulanButangMerujuk.appendChild(butangBatal);
+        let [butangMohon, butangBatal] = ["Mohon", "Batal"].map(ciptaTambahSifatButang);
+        kumpulanButangMerujuk.append(butangMohon, butangBatal);
 
         let kumpulanButangRujukan = ciptaKumpulanButang();
-        let butangLulus = ciptaTambahSifatButang("Lulus");
-        let butangTolak = ciptaTambahSifatButang("Tolak");
-        kumpulanButangRujukan.appendChild(butangLulus);
-        kumpulanButangRujukan.appendChild(butangTolak);
+        let [butangLulus, butangTolak] = ["Lulus", "Tolak"].map(ciptaTambahSifatButang);
+        kumpulanButangRujukan.append(butangLulus, butangTolak);
 
+        // 4. Dapatkan data berkaitan
         let dataU = dataUjian.find(ujian => {return ujian[0] == rekod[2]});
         let hospitalRujukan = dataHospital.find(hosp => {return hosp[0] == dataU[1]});
         let hospitalMerujuk = dataHospital.find(hosp => {return hosp[0] == rekod[1]});
-        let idHospital;
-        let namaHospital;
+
+        // 5. Tentukan paparan berdasarkan peranan
+        let idHospital, namaHospital;
 
         if (sebagai == HOSPITAL.MERUJUK) {
             idHospital = dataU[1];
@@ -127,45 +156,62 @@
             kumpulanButangMerujuk.classList.add("d-none");
         }
 
-        selMakmal.innerHTML = idHospital + "</br>" + namaHospital;
+        // 6. Isi kandungan sel
+        selMakmal.innerHTML = `${idHospital}</br>${namaHospital}`;
+        selUjian.innerHTML = `${rekod[2]}</br>${dataU[2]}`;
+        selStatus.innerHTML = `${rekod[3]}</br>${rekod[4]}`;
+        selTindakan.append(kumpulanButangMerujuk, kumpulanButangRujukan);
 
-        let idUjian = rekod[2];
-        let namaUjian = dataU[2];
-        selUjian.innerHTML = idUjian + "</br>" + namaUjian;
+        // 7. Sambungkan semua elemen
+        baris.append(selMakmal, selUjian, selStatus, selTindakan);
 
-        selStatus.innerHTML = rekod[3] + "</br>" + rekod[4];
-
-        selTindakan.appendChild(kumpulanButangMerujuk);
-        selTindakan.appendChild(kumpulanButangRujukan);
-
-        baris.appendChild(selMakmal);
-        baris.appendChild(selUjian);
-        baris.appendChild(selStatus);
-        baris.appendChild(selTindakan);
-
-        if(rekod[3] == STATUS_PERJANJIAN.MOHON) {
-            baris.classList.add("table-success");
-        } else if (rekod[3] == STATUS_PERJANJIAN.TOLAK) {
-            baris.classList.add("table-danger");
-        } else if (rekod[3] == STATUS_PERJANJIAN.BATAL) {
-            baris.classList.add("table-secondary");
-        }
+        // 8. Tambah warna baris berdasarkan status
+        baris.classList.add(KELASWARNA[rekod[3]]);
 
         return baris;
     }
 
+    /**
+     * Menguruskan penghantaran tindakan perjanjian (Mohon/Batal/Lulus/Tolak) ke backend
+     * 
+     * @param {HTMLElement} butangIni - Butang yang diklik (mengandungi dataset)
+     * 
+     * @description
+     * 1. Memaparkan notifikasi '...Sila tunggu sebentar...'
+     * 2. Meminta pengesahan kunci dari pengguna
+     * 3. Mengumpulkan data yang diperlukan:
+     *    - ID Perjanjian
+     *    - Status baru
+     *    - Info hospital dan peranan
+     * 4. Menghantar ke Google Script untuk pemprosesan
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - makanCerna() untuk pengesahan kunci
+     *   - NOTA untuk mesej sistem
+     *   - binaJadualRujukan() untuk refresh UI selepas kemaskini
+     * - Status yang dibenarkan: "Mohon", "Batal", "Lulus", "Tolak"
+     */
     function hantarTindakan(butangIni) {
+        // 1. Tunjukkan status pemprosesan
         nota.innerHTML = NOTA.TUNGGU;
 
+        // 2. Dapatkan input pengguna
         let kunci = prompt(NOTA.MASUKKUNCI);
+        if (!kunci) {
+            nota.innerHTML = "";
+            return;
+        }
 
+        // 3. Kumpulkan data dari UI
         let idPerjanjian = butangIni.dataset.idPerjanjian;
-        let statusPerjanjian = butangIni.innerHTML;
+        let statusPerjanjian = butangIni.textContent.trim();
         let idHospital = inputCarian.idHospital.value;
         let sebagai = inputCarian.perananHospital.value;
         let ubat = inputCarian.butangPapar.dataset.ubat;
         let tarikh = new Date().toISOString().split("T")[0];
 
+        // 4. Sahkan kunci
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
                 alert(NOTA.LARANGANUBAH);
@@ -173,40 +219,89 @@
                 return;
             }
 
+            // 5. Hantar ke backend
             google.script.run.withSuccessHandler(binaJadualRujukan).kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai);
         });
     }
 
+    /**
+     * Memaparkan senarai perjanjian berdasarkan peranan hospital
+     * 
+     * @description
+     * 1. Memaparkan status '...Sila tunggu sebentar...'
+     * 2. Mengumpulkan parameter carian:
+     *    - ID Hospital
+     *    - Peranan (Merujuk/Rujukan)
+     *    - Kunci akses
+     * 3. Mengesahkan kunci sebelum memproses
+     * 4. Memuat data dari backend berdasarkan peranan
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - resetLajurNamaMakmal(): Menyesuaikan header jadual
+     *   - makanCerna(): Pengesahan kunci
+     *   - binaJadualRujukan(): Membina UI selepas data diterima
+     * - Parameter ambilData:
+     *   - 5: Untuk hospital merujuk
+     *   - 6: Untuk hospital rujukan
+     */
     function paparPerjanjian() {
+        // 1. Tunjukkan status pemprosesan
         nota.innerHTML = NOTA.TUNGGU;
 
+        // 2. Dapatkan parameter carian
         let idHospital = inputCarian.idHospital.value;
         let sebagai = inputCarian.perananHospital.value;
         let ubat = inputCarian.butangPapar.dataset.ubat;
 
+        // 3. Sesuaikan UI
         resetLajurNamaMakmal();
 
+        // 4. Minta pengesahan kunci
         let kunci = prompt(NOTA.MASUKKUNCI);
+        if (!kunci) {
+            nota.innerHTML = "";
+            return;
+        }
 
+        // 5. Sahkan kunci
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
                 alert(NOTA.LARANGANLIHAT);
                 nota.innerHTML = "";
                 return;
             }
-            
-            if (sebagai == HOSPITAL.MERUJUK) {
-                google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(5, idHospital);
 
-            } else if (sebagai == HOSPITAL.RUJUKAN) {
-                google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(6, idHospital);
-            }
+            // 6. Pilih sumber data berdasarkan peranan
+            let butiran = sebagai == HOSPITAL.MERUJUK? 5 : 6;
+            google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(butiran, idHospital);
         });
     }
 
     /*===============
     5. Fungsi Utiliti
     ===============*/
+    /**
+     * Menyulitkan input pengguna menjadi hash SHA-256 (hex string).
+     * 
+     * @param {string} ubat - Input pengguna akan dicantas secara automatik
+     * @returns {Promise<string>} Hash SHA-256 dalam format hex (64 aksara)
+     * 
+     * @description
+     * Proses hashing:
+     * 1. Bersihkan input (buang ruang kosong di tepi)
+     * 2. Enkod ke UTF-8 → hash dengan SHA-256
+     * 3. Tukar buffer ke string hex
+     * 
+     * @example
+     * makanCerna("kunciRahsia123").then(hash => console.log(hash));
+     * // Output: "a591a6d40bf420404a011733..."
+     * 
+     * @note
+     * - Gunakan untuk pengesahan kunci (client-side).
+     * - Output konsisten dengan hash standard SHA-256.
+     * - Tidak boleh dikembalikan ke input asal.
+     */
     async function makanCerna(ubat) {
         let ubatKod = new TextEncoder().encode(ubat.trim());
         let ubatBuffer = await window.crypto.subtle.digest("SHA-256", ubatKod);
@@ -216,51 +311,162 @@
         return ubatHex;
     }
 
+    /**
+     * Memaparkan nama hospital dan mengesahkan ID hospital yang dimasukkan
+     * 
+     * @description
+     * 1. Memvalidasi ID hospital berdasarkan:
+     *    - Panjang ID (minimum 6 karakter)
+     *    - Kewujudan dalam sistem
+     * 2. Mengemaskini UI berdasarkan hasil validasi:
+     *    - Menampilkan nama hospital jika valid
+     *    - Menyahaktifkan butang papar jika ID tidak valid
+     *    - Menetapkan dataset ubat
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - dataHospital: Array global data hospital
+     *   - NOTA.IDTIDAKSAH: Mesej kesalahan ("ID Hospital tidak sah")
+     * - Dipanggil secara automatik ketika input ID hospital berubah
+     */
     function paparNamaHospital() {
         let idHospital = inputCarian.idHospital.value;
 
+        // Validasi panjang ID
         if (idHospital.length < 6) {
             inputCarian.namaHospital.value = "";
-            inputCarian.butangPapar.dataset.ubat = "";
-            inputCarian.butangPapar.disabled = true;
+            resetUI();
+            return;
+        } 
+        // Cari hospital dalam sistem
+        let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
 
+        if (hospital) {
+            // Jika hospital ditemukan
+            inputCarian.namaHospital.value = hospital[2];
+            inputCarian.butangPapar.dataset.ubat = hospital[1];
+            inputCarian.butangPapar.disabled = false;
+        
         } else {
-            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
-
-            if (hospital != undefined) {
-                inputCarian.namaHospital.value = hospital[2];
-                inputCarian.butangPapar.dataset.ubat = hospital[1];
-                inputCarian.butangPapar.disabled = false;
-            
-            } else {
-                inputCarian.namaHospital.value = NOTA.IDTIDAKSAH;
-                inputCarian.butangPapar.dataset.ubat = "";
-                inputCarian.butangPapar.disabled = true;
-            }
+            // Jika ID tidak valid
+            inputCarian.namaHospital.value = NOTA.IDTIDAKSAH;
+            resetUI();
         }
     }
 
+    /**
+     * Menetapkan semula nilai input hospital ke keadaan default
+     * @private
+     */
+    function resetUI() {
+        inputCarian.butangPapar.dataset.ubat = "";
+        inputCarian.butangPapar.disabled = true;
+    }
+
+    /**
+     * Menyimpan data hospital yang diterima dari Google Sheets ke dalam memori
+     * 
+     * @param {Array<Array>} dataDariGS - Data hospital dalam format 2D array dari Google Sheets
+     * @returns {void}
+     * 
+     * @description
+     * 1. Menyimpan data hospital ke dalam pemboleh ubah global `dataHospital`
+     * 2. Mengosongkan elemen nota yang berisi mesej '...Sila tunggu sebentar...'
+     * 
+     * @nota
+     * - Fungsi ini biasanya dipanggil sebagai callback dari `google.script.run`
+     * - Data dijangka dalam format: 
+     *   [ [ID, UbatHash, Nama, ...], [ID, UbatHash, Nama, ...], ... ]
+     * - Pemboleh ubah `dataHospital` akan digunakan oleh fungsi-fungsi lain seperti `paparNamaHospital()`
+     * 
+     * @contoh_penggunaan
+     * google.script.run
+     *     .withSuccessHandler(simpanData)
+     *     .ambilData(2);
+     */
     function simpanData(dataDariGS) {
         dataHospital = dataDariGS;
         nota.innerHTML = "";
     }
 
+    /**
+     * Mengemaskini tajuk lajur makmal berdasarkan peranan hospital yang dipilih
+     * 
+     * @description
+     * 1. Menentukan peranan hospital semasa (Merujuk/Rujukan)
+     * 2. Mengubah teks tajuk lajur mengikut konteks:
+     *    - "Nama Makmal Rujukan" untuk hospital Merujuk
+     *    - "Nama Makmal Merujuk" untuk hospital Rujukan
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - inputCarian.perananHospital: Dropdown pemilihan peranan
+     *   - HOSPITAL.MERUJUK/HOSPITAL.RUJUKAN: Pemalar peranan
+     *   - namaLajurMakmal: Elemen DOM untuk tajuk lajur
+     * - Biasanya dipanggil ketika:
+     *   - Peranan hospital berubah
+     *   - Sebelum memaparkan jadual baru
+     */
     function resetLajurNamaMakmal() {
         let hospitalSebagai = inputCarian.perananHospital.value;
         namaLajurMakmal.innerHTML = hospitalSebagai == HOSPITAL.MERUJUK? "Nama Makmal Rujukan" : "Nama Makmal Merujuk";
     }
 
+    /**
+     * Mencipta elemen butang tindakan dengan sifat-sifat standard
+     * 
+     * @param {string} namaButang - Teks yang akan ditunjukkan pada butang (contoh: "Mohon", "Batal")
+     * @param {Array} rekod - Data perjanjian [ID, IDHospital, IDUjian, Status, Tarikh]
+     * @returns {HTMLButtonElement} Butang HTML yang telah dikonfigurasi
+     * 
+     * @description
+     * 1. Membina elemen butang baru dengan sifat:
+     *    - Jenis: button (type="button")
+     *    - Kelas CSS: btn btn-outline-warning
+     *    - ID Perjanjian dalam dataset
+     *    - Event listener untuk klik
+     *    - Teks butang yang ditentukan
+     * 2. Direka untuk digunakan dalam sistem pengurusan perjanjian
+     * 
+     * @nota
+     * - Bergantung pada:
+     *   - Fungsi hantarTindakan() untuk menguruskan klik butang
+     *   - Gaya Bootstrap (btn-outline-warning)
+     * - Data yang diperlukan dari rekod:
+     *   - rekod[0]: ID Perjanjian (untuk dataset.idPerjanjian)
+     */
     function ciptaTambahSifatButang(namaButang) {
         let butang = document.createElement("button");
-        butang.setAttribute("type", "button");
+        
+        // Konfigurasi asas butang
+        butang.type = "button";
         butang.classList.add("btn", "btn-outline-warning");
         butang.dataset.idPerjanjian = rekod[0];
+
+        // Tambah event listener
         butang.addEventListener("click", e => hantarTindakan(e.target));
         butang.innerHTML = namaButang;
 
         return butang;
     }
 
+    /**
+     * Mencipta kumpulan butang (button group) untuk tindakan-tindakan perjanjian
+     * 
+     * @returns {HTMLDivElement} Elemen div yang telah ditetapkan sebagai button group
+     * 
+     * @description
+     * 1. Membina container untuk kumpulan butang dengan sifat:
+     *    - Kelas CSS: 'btn-group' dan 'btn-group-sm' (Bootstrap)
+     *    - Role: 'group'
+     * 2. Direka untuk mengumpulkan butang tindakan seperti "Mohon/Batal" atau "Lulus/Tolak"
+     * 
+     * @nota
+     * - Menggunakan gaya Bootstrap untuk:
+     *   - Penyusunan butang yang rapat
+     *   - Saiz kecil (sm)
+     * - Biasanya digunakan bersama ciptaTambahSifatButang()
+     */
     function ciptaKumpulanButang() {
         let kumpulan = document.createElement("div");
         kumpulan.classList.add("btn-group", "btn-group-sm");
@@ -272,6 +478,24 @@
     /*==============
     6. Permulaan DOM
     ==============*/
+    /**
+     * Permulaan sistem apabila halaman selesai dimuatkan
+     * 
+     * @description
+     * 1. Set mesej 'sila tunggu' dalam elemen nota
+     * 2. Ambil data hospital dari Google Sheets (butiran 2)
+     * 3. Gunakan fungsi simpanData() sebagai handler untuk proses data
+     * 
+     * @nota
+     * - Dijalankan sekali semasa halaman pertama kali dimuat
+     * - Bergantung pada:
+     *   - NOTA.TUNGGU: Mesej loading ("...Sila tunggu sebentar...")
+     *   - simpanData(): Fungsi untuk memproses data hospital
+     *   - google.script.run: Sambungan ke Google Apps Script
+     * 
+     * @lihat_juga
+     * - simpanData() - Fungsi pemproses data utama
+     */
     document.addEventListener('DOMContentLoaded', () => {
         nota.innerHTML = NOTA.TUNGGU;
         google.script.run.withSuccessHandler(simpanData).ambilData(2);

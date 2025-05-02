@@ -204,21 +204,20 @@
 
         if (idHospital.length < 6) {
             borang.ujian.namaHospital.value = "";
-            modal.ujian.butangHantar.disabled = true;
-            modal.ujian.butangHantar.dataset.ubat = "";
+            setSemulaModalUjianUI();
+            return;
+        }
+
+        let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
+
+        if (hospital != undefined) {
+            borang.ujian.namaHospital.value = hospital[2];
+            modal.ujian.butangHantar.disabled = false;
+            modal.ujian.butangHantar.dataset.ubat = hospital[1];
+
         } else {
-            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
-
-            if (hospital != undefined) {
-                borang.ujian.namaHospital.value = hospital[2];
-                modal.ujian.butangHantar.disabled = false;
-                modal.ujian.butangHantar.dataset.ubat = hospital[1];
-
-            } else {
-                borang.ujian.namaHospital.value = NOTA.IDTIDAKSAH;
-                modal.ujian.butangHantar.disabled = true;
-                modal.ujian.butangHantar.dataset.ubat = "";
-            }
+            borang.ujian.namaHospital.value = NOTA.IDTIDAKSAH;
+            setSemulaModalUjianUI();
         }
     }
 
@@ -242,22 +241,20 @@
 
         if (idHospital.length < 6) {
             borang.perjanjian.namaMerujuk.value = "";
-            modal.perjanjian.butangHantar.disabled = true;
-            modal.perjanjian.butangHantar.dataset.ubat = "";
+            setSemulaModalJanjiUI();
+            return;
+        }
+
+        let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
+
+        if ((hospital != undefined) && (hospital[2] != namaHospitalRujukan)) {
+            borang.perjanjian.namaMerujuk.value = hospital[2];
+            modal.perjanjian.butangHantar.disabled = false;
+            modal.perjanjian.butangHantar.dataset.ubat = hospital[1];
 
         } else {
-            let hospital = dataHospital.find(rekod => {return rekod[0] == idHospital});
-
-            if ((hospital != undefined) && (hospital[2] != namaHospitalRujukan)) {
-                borang.perjanjian.namaMerujuk.value = hospital[2];
-                modal.perjanjian.butangHantar.disabled = false;
-                modal.perjanjian.butangHantar.dataset.ubat = hospital[1];
-
-            } else {
-                borang.perjanjian.namaMerujuk.value = NOTA.IDTIDAKSAH;
-                modal.perjanjian.butangHantar.disabled = true;
-                modal.perjanjian.butangHantar.dataset.ubat = "";
-            }
+            borang.perjanjian.namaMerujuk.value = NOTA.IDTIDAKSAH;
+            setSemulaModalJanjiUI();
         }
     }
 
@@ -352,20 +349,17 @@
             return;
         }
 
-        lajurMakmal.innerHTML = rekod[1] + "</br>" + dataHosp[2];
-        
+        lajurMakmal.innerHTML = `${rekod[1]}</br>${dataHosp[2]}`;
         lajurUjian.innerHTML = rekod[2];
-
-        lajurKualiti.innerHTML = rekod[3] + "</br> [LTAT: " + rekod[4] + "]";
-
+        lajurKualiti.innerHTML = `${rekod[3]}</br>[LTAT: ${rekod[4]}]`;
         lajurStatus.innerHTML = rekod[5];
 
         let butangUbah = document.createElement("button");
         butangUbah.innerHTML = "Ubah";
         butangUbah.dataset.idUjian = rekod[0];
         butangUbah.dataset.ubat = dataHosp[1];
-        butangUbah.setAttribute("type", "button");
-        butangUbah.setAttribute("class", "btn btn-outline-warning");
+        butangUbah.type = "button";
+        butangUbah.classList.add("btn btn-outline-warning");
         butangUbah.setAttribute("data-bs-toggle", "modal");
         butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
         butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
@@ -376,21 +370,16 @@
         butangMohon.dataset.namaUjian = rekod[2];
         butangMohon.dataset.namaHospital = dataHosp[2];
         butangMohon.disabled = rekod[5]== STATUS_UJIAN.AKTIF? false : true;
-        butangMohon.setAttribute("type", "button");
-        butangMohon.setAttribute("class", "btn btn-outline-warning");
+        butangMohon.type = "button";
+        butangMohon.classList.add("btn btn-outline-warning");
         butangMohon.setAttribute("data-bs-toggle", "modal");
         butangMohon.setAttribute("data-bs-target", "#modalMohonPerjanjian");
         butangMohon.addEventListener("click", e => paparkanPermohonan(e.target));
 
-        lajurTarikh.innerHTML = rekod[6] + "</br>";
-        lajurTarikh.appendChild(butangUbah);
-        lajurTarikh.appendChild(butangMohon);
+        lajurTarikh.innerHTML = `${rekod[6]}</br>`;
+        lajurTarikh.append(butangUbah, butangMohon);
 
-        baris.appendChild(lajurMakmal);
-        baris.appendChild(lajurUjian);
-        baris.appendChild(lajurKualiti);
-        baris.appendChild(lajurStatus);
-        baris.appendChild(lajurTarikh);
+        baris.append(lajurMakmal, lajurUjian, lajurKualiti, lajurStatus, lajurTarikh);
 
         if (rekod[5] == STATUS_UJIAN.TANGGUH) {
             baris.classList.add("table-danger");
@@ -424,10 +413,9 @@
 
         borang.ujian.idHospital.disabled = false;
 
-        modal.ujian.butangHantar.dataset.ubat = "";
+        setSemulaModalUjianUI();
         modal.ujian.butangHantar.dataset.idUjian = "";
         modal.ujian.butangHantar.dataset.urusan = "baru";
-        modal.ujian.butangHantar.disabled = true;
     }
 
     /**
@@ -694,10 +682,27 @@
         alert(NOTA.TIADAREKOD);
     }
 
+    /**
+     * Menetapkan semula nilai butang modal ujian ke keadaan default
+     * @private
+     */
+    function setSemulaModalUjianUI() {
+        modal.ujian.butangHantar.disabled = true;
+        modal.ujian.butangHantar.dataset.ubat = "";
+    }
+
+    /**
+     * Menetapkan semula nilai butang modal perjanjian ke keadaan default
+     * @private
+     */
+    function setSemulaModalJanjiUI() {
+        modal.perjanjian.butangHantar.disabled = true;
+        modal.perjanjian.butangHantar.dataset.ubat = "";
+    }
+
     /*===============
     11. Permulaan DOM
     ===============*/
-
     /**
      * Permulaan sistem apabila halaman selesai dimuatkan
      * 
