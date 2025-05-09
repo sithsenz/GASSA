@@ -124,7 +124,21 @@ function ambilData(butiran, carian=null) {
         // Filter rekod dengan status "Aktif" (kolum 11)
         let dataAktif = dataHospital.filter(rekod => {return rekod[11] == HOSPITAL.AKTIF});
 
-        return dataAktif;
+        if (dataAktif.length < 100) {
+            return dataAktif;
+        
+        } else {
+            // Ambil sampel rawak jika data melebihi 100 rekod
+            let dataA = [];
+            let [penokok, baki] = bahagiBaki(dataAktif.length, 100);
+            let pemula = Math.floor(Math.random() * baki);
+
+            for (let i=pemula; i<dataAktif.length; i+=penokok) {
+                dataA.push(dataAktif[i]);
+            }
+
+            return dataA;
+        }
 
     // Ambil data hospital (lajur terpilih sahaja)
     } else if (butiran == 2) {
@@ -153,7 +167,6 @@ function ambilData(butiran, carian=null) {
 
         } else if (bilanganID > 1) {
             // Ambil sampel rawak jika data melebihi 100 rekod
-            // [penokok, baki] = (jumlahData / 100)
             let [penokok, baki] = bahagiBaki(dataU.length, 100);
 
             let pemula = Math.floor(Math.random() * baki);
