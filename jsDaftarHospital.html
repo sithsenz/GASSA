@@ -12,6 +12,8 @@
         TAHNIAH: "Tahniah! Boleh cerna.",
         MAAF: "Maaf, akan cirit!",
         LARANG: "Anda tiada kebenaran untuk mengubah data hospital ini.",
+        PESANAN: "Pesanan",
+        AMARAN: "Amaran",
     }
 
     /*============
@@ -20,6 +22,11 @@
     const inputCarian = document.getElementById("cariHospital");
     const nota = document.getElementById("nota");
     const badanJadual = document.getElementById("badan-jadual-daftar-hospital");
+    const pesanan = {
+        kotak: new bootstrap.Modal("#modalPesanan"),
+        mesej: document.getElementById("pesanan"),
+        tajuk: document.getElementById("tajukPesanan"),
+    }
     const modal = {
         daftarHospital: document.getElementById("modalDaftarHospital"),
         tajuk: document.getElementById("tajukModal"),
@@ -322,11 +329,18 @@
     function bolehCerna() {
         if (window.crypto?.subtle) {
             cerna = true;
-            alert(NOTA.TAHNIAH);
+            kotakPesanan(NOTA.PESANAN, NOTA.TAHNIAH);
         } else {
             cerna = false;
-            alert(NOTA.MAAF);
+            kotakPesanan(NOTA.PESANAN, NOTA.MAAF);
         }
+    }
+
+
+    function kotakPesanan(taj, pes) {
+        pesanan.kotak.show();
+        pesanan.tajuk.innerHTML = taj;
+        pesanan.mesej.innerHTML = pes;
     }
 
     /*====================
@@ -378,7 +392,7 @@
         makanCerna(kunci).then(makanan => {
             // Bandingkan hash kunci input vs hash sedia ada
             if (ubat != makanan) {
-                alert(NOTA.LARANG);
+                kotakPesanan(NOTA.AMARAN, NOTA.LARANG);
                 return;
             }
 
