@@ -9,8 +9,8 @@
 
     const NOTA = {
         TUNGGU: "... Sila tunggu sebentar ...",
-        TAHNIAH: "Tahniah! Boleh cerna.",
-        MAAF: "Maaf, akan cirit!",
+        TAHNIAH: "Selamat datang ke Sistem Direktori Rangkaian Perkhidmatan Makmal Perubatan",
+        MAAF: "Mohon maaf, komputer anda tidak mampu menampung keperluan sistem!",
         LARANG: "Anda tiada kebenaran untuk mengubah data hospital ini.",
         PESANAN: "Pesanan",
         AMARAN: "Amaran",
@@ -337,6 +337,15 @@
     }
 
 
+    /**
+     * Memaparkan kotak pesanan
+     * @param {string} taj - Tajuk untuk kotak pesanan
+     * @param {string} pes - Kandungan mesej yang ingin dipaparkan
+     * 
+     * @description
+     * 1. Memaparkan modal pesanan dengan tajuk dan mesej tertentu
+     * 2. Menggunakan sistem modal Bootstrap
+     */
     function kotakPesanan(taj, pes) {
         pesanan.kotak.show();
         pesanan.tajuk.innerHTML = taj;

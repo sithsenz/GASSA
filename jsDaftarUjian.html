@@ -24,6 +24,8 @@
         TIADA: "Tiada rekod sepadan dijumpai",
         PERNAH: "Permohonan pernah dihantar sebelum ini. Sila semak.",
         TUNGGUMAKLUM: "Permohonan diterima. Sila tunggu maklum balas daripada hospital rujukan.",
+        PESANAN: "Pesanan",
+        AMARAN: "Amaran",
     }
 
     /*============
@@ -32,6 +34,11 @@
     const nota = document.getElementById("nota");
     const inputCarian = document.getElementById("cari");
     const badanJadual = document.getElementById("badan-jadual-daftar-ujian");
+    const pesanan = {
+        kotak: new bootstrap.Modal("#modalPesanan"),
+        mesej: document.getElementById("pesanan"),
+        tajuk: document.getElementById("tajukPesanan"),
+    }
     const modal = {
         ujian: {
             tetingkap: document.getElementById("modalDaftarUjian"),
@@ -359,7 +366,7 @@
         butangUbah.dataset.idUjian = rekod[0];
         butangUbah.dataset.ubat = dataHosp[1];
         butangUbah.type = "button";
-        butangUbah.classList.add("btn btn-outline-warning");
+        butangUbah.classList.add("btn", "btn-outline-warning");
         butangUbah.setAttribute("data-bs-toggle", "modal");
         butangUbah.setAttribute("data-bs-target", "#modalDaftarUjian");
         butangUbah.addEventListener("click", e => paparkanDataUjian(e.target));
@@ -371,7 +378,7 @@
         butangMohon.dataset.namaHospital = dataHosp[2];
         butangMohon.disabled = rekod[5]== STATUS_UJIAN.AKTIF? false : true;
         butangMohon.type = "button";
-        butangMohon.classList.add("btn btn-outline-warning");
+        butangMohon.classList.add("btn", "btn-outline-warning");
         butangMohon.setAttribute("data-bs-toggle", "modal");
         butangMohon.setAttribute("data-bs-target", "#modalMohonPerjanjian");
         butangMohon.addEventListener("click", e => paparkanPermohonan(e.target));
@@ -564,7 +571,7 @@
 
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert(NOTA.LARANGANUBAH);
+                kotakPesanan(NOTA.AMARAN, NOTA.LARANGANUBAH);
                 return;
             }
 
@@ -622,7 +629,7 @@
         // Sahkan kunci akses
         makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert(NOTA.LARANGANMOHON);
+                kotakPesanan(NOTA.AMARAN, NOTA.LARANGANMOHON);
 
             } else {  // Tutup modal dan hantar ke Google Script
                 let data = ["", IDhospitalMerujuk, idUjian, "Mohon", tarikh];
@@ -651,9 +658,9 @@
      */
     function maklumTerimaPermohonan(dataDariGS) {
         if (dataDariGS == NOTA.WUJUD) {
-            alert(NOTA.PERNAH);
+            kotakPesanan(NOTA.PESANAN, NOTA.PERNAH);
         } else if (dataDariGS == NOTA.DITERIMA) {
-            alert(NOTA.TUNGGUMAKLUM);
+            kotakPesanan(NOTA.PESANAN, NOTA.TUNGGUMAKLUM);
         }
     }
 
@@ -679,8 +686,25 @@
      */
     function tungguAlert() {
         nota.innerHTML = "";
-        alert(NOTA.TIADAREKOD);
+        kotakPesanan(NOTA.PESANAN, NOTA.TIADAREKOD);
     }
+
+
+    /**
+     * Memaparkan kotak pesanan
+     * @param {string} taj - Tajuk untuk kotak pesanan
+     * @param {string} pes - Kandungan mesej yang ingin dipaparkan
+     * 
+     * @description
+     * 1. Memaparkan modal pesanan dengan tajuk dan mesej tertentu
+     * 2. Menggunakan sistem modal Bootstrap
+     */
+    function kotakPesanan(taj, pes) {
+        pesanan.kotak.show();
+        pesanan.tajuk.innerHTML = taj;
+        pesanan.mesej.innerHTML = pes;
+    }
+
 
     /**
      * Menetapkan semula nilai butang modal ujian ke keadaan default

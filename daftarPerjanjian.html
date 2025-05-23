@@ -50,6 +50,37 @@
         </thead>
         <tbody id="badan-jadual-perjanjian"></tbody>
     </table>
+    <!-- Modal Pesanan -->
+    <div class="modal fade" id="modalPesanan" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content bg-warning text-dark">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="tajukPesanan"></h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body"><p id="pesanan"></p></div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Prompt -->
+    <div class="modal fade" id="modalProm" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-success text-white">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="tajukProm"></h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="butanX"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="prom"></p>
+                    <input class="form-control" placeholder="Kunci Anda" id="kunciAnda" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-primary" id="hantarProm">Hantar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js" integrity="sha384-k6d4wzSIapyDyv1kpU366/PK5hCdSbCRGRCMv+eplOQJWyd1fbcAu9OCUj5zNLiq" crossorigin="anonymous"></script>
     <?!= merangkumiFileJS("jsDaftarPerjanjian"); ?>
 </body>

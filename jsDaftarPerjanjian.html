@@ -23,6 +23,8 @@
         LARANGANUBAH: "Anda tiada kebenaran untuk mengubah status perjanjian hospital ini.",
         MASUKKUNCI: "Sila masukkan kunci anda",
         TUNGGU: "... Sila tunggu sebentar ...",
+        PESANAN: "Pesanan",
+        AMARAN: "Amaran",
     }
 
     /*============
@@ -37,6 +39,18 @@
     }
     const namaLajurMakmal = document.getElementById("namaLajurMakmal");
     const nota = document.getElementById("nota");
+    const pesanan = {
+        kotak: new bootstrap.Modal("#modalPesanan"),
+        mesej: document.getElementById("pesanan"),
+        tajuk: document.getElementById("tajukPesanan"),
+    }
+    const prom = {
+        kotak: new bootstrap.Modal("#modalProm"),
+        mesej: document.getElementById("prom"),
+        tajuk: document.getElementById("tajukProm"),
+        butangHantar: document.getElementById("hantarProm"),
+        kunci: document.getElementById("kunciAnda"),
+    }
 
     /*====================
     3. Persekitaran Global
@@ -197,30 +211,32 @@
         nota.innerHTML = NOTA.TUNGGU;
 
         // 2. Dapatkan input pengguna
-        let kunci = prompt(NOTA.MASUKKUNCI);
-        if (!kunci) {
-            nota.innerHTML = "";
-            return;
-        }
-
-        // 3. Kumpulkan data dari UI
-        let idPerjanjian = butangIni.dataset.idPerjanjian;
-        let statusPerjanjian = butangIni.textContent.trim();
-        let idHospital = inputCarian.idHospital.value;
-        let sebagai = inputCarian.perananHospital.value;
-        let ubat = inputCarian.butangPapar.dataset.ubat;
-        let tarikh = new Date().toISOString().split("T")[0];
-
-        // 4. Sahkan kunci
-        makanCerna(kunci).then(makanan => {
-            if (ubat != makanan) {
-                alert(NOTA.LARANGANUBAH);
+        kotakProm(NOTA.PESANAN, NOTA.MASUKKUNCI).then((k) => {
+            let kunci = k;
+            if (!kunci) {
                 nota.innerHTML = "";
                 return;
             }
 
+            // 3. Kumpulkan data dari UI
+            let idPerjanjian = butangIni.dataset.idPerjanjian;
+            let statusPerjanjian = butangIni.textContent.trim();
+            let idHospital = inputCarian.idHospital.value;
+            let sebagai = inputCarian.perananHospital.value;
+            let ubat = inputCarian.butangPapar.dataset.ubat;
+            let tarikh = new Date().toISOString().split("T")[0];
+
+            // 4. Sahkan kunci
+            makanCerna(kunci).then(makanan => {
+                if (ubat != makanan) {
+                    kotakPesanan(NOTA.AMARAN, NOTA.LARANGANUBAH);
+                    nota.innerHTML = "";
+                    return;
+                }
+
             // 5. Hantar ke backend
             google.script.run.withSuccessHandler(binaJadualRujukan).kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHospital, sebagai);
+            });
         });
     }
 
@@ -258,16 +274,17 @@
         resetLajurNamaMakmal();
 
         // 4. Minta pengesahan kunci
-        let kunci = prompt(NOTA.MASUKKUNCI);
-        if (!kunci) {
-            nota.innerHTML = "";
-            return;
-        }
+        kotakProm(NOTA.PESANAN, NOTA.MASUKKUNCI).then((k) => {
+            let kunci = k;
+            if (!kunci) {
+                nota.innerHTML = "";
+                return;
+            }
 
-        // 5. Sahkan kunci
-        makanCerna(kunci).then(makanan => {
+            // 5. Sahkan kunci
+            makanCerna(kunci).then(makanan => {
             if (ubat != makanan) {
-                alert(NOTA.LARANGANLIHAT);
+                kotakPesanan(NOTA.AMARAN, NOTA.LARANGANLIHAT);
                 nota.innerHTML = "";
                 return;
             }
@@ -275,6 +292,7 @@
             // 6. Pilih sumber data berdasarkan peranan
             let butiran = sebagai == HOSPITAL.MERUJUK? 5 : 6;
             google.script.run.withSuccessHandler(binaJadualRujukan).ambilData(butiran, idHospital);
+            });
         });
     }
 
@@ -474,6 +492,49 @@
 
         return kumpulan;
     }
+
+
+    /**
+     * Memaparkan kotak pesanan
+     * @param {string} taj - Tajuk untuk kotak pesanan
+     * @param {string} pes - Kandungan mesej yang ingin dipaparkan
+     * 
+     * @description
+     * 1. Memaparkan modal pesanan dengan tajuk dan mesej tertentu
+     * 2. Menggunakan sistem modal Bootstrap
+     */
+    function kotakPesanan(taj, pes) {
+        pesanan.kotak.show();
+        pesanan.tajuk.innerHTML = taj;
+        pesanan.mesej.innerHTML = pes;
+    }
+
+
+    /**
+     * Memaparkan kotak prom
+     * @param {string} taj - Tajuk untuk kotak prompt
+     * @param {string} pro - Petunjuk input
+     * @returns {Promise<string>} Promise yang resolve dengan nilai input pengguna
+     * 
+     * @description
+     * 1. Memaparkan modal prompt untuk input pengguna
+     * 2. Menggunakan tetapan NOTA untuk mesej default
+     * 3. Mengembalikan Promise yang resolve ketika pengguna klik hantar
+     */
+    function kotakProm(taj, pro) {
+        prom.kotak.show();
+        prom.tajuk.innerHTML = NOTA.PESANAN;
+        prom.mesej.innerHTML = NOTA.MASUKKUNCI;
+        prom.kunci.value = "";
+
+        return new Promise((resolve, reject) => {
+            prom.butangHantar.onclick = () => {
+                resolve(prom.kunci.value);
+                prom.kotak.hide();
+            }
+        });
+    }
+
 
     /*==============
     6. Permulaan DOM
