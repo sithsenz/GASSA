@@ -68,6 +68,7 @@
             namaMerujuk: document.getElementById("namaHospitalMerujuk"),
             namaRujukan: document.getElementById("namaHospitalRujukan"),
             namaUjianRujukan: document.getElementById("namaUjianRujukan"),
+            beban: document.getElementById("IDbeban"),
             kunciMerujuk: document.getElementById("kunciMerujuk"),
         },
     }
@@ -490,6 +491,7 @@
 
         borang.perjanjian.namaRujukan.value = namaHospitalRujukan;
         borang.perjanjian.namaUjianRujukan.value = namaUjian;
+        borang.perjanjian.beban.value = "";
         borang.perjanjian.idMerujuk.value = "";
         borang.perjanjian.namaMerujuk.value = "";
         borang.perjanjian.kunciMerujuk.value = "";
@@ -623,6 +625,7 @@
 
         // Dapatkan input dari borang
         let IDhospitalMerujuk = borang.perjanjian.idMerujuk.value;
+        let beban = borang.perjanjian.beban.value;
         let kunci = borang.perjanjian.kunciMerujuk.value;
         let tarikh = new Date().toISOString().split("T")[0];
 
@@ -632,7 +635,7 @@
                 kotakPesanan(NOTA.AMARAN, NOTA.LARANGANMOHON);
 
             } else {  // Tutup modal dan hantar ke Google Script
-                let data = ["", IDhospitalMerujuk, idUjian, "Mohon", tarikh];
+                let data = ["", IDhospitalMerujuk, idUjian, beban, "Mohon", tarikh];
                 modal.perjanjian.butangX.click();
                 google.script.run.withSuccessHandler(maklumTerimaPermohonan).mohonPerjanjianBaru(data);
             }

@@ -139,6 +139,7 @@
         // 2. Cipta 4 sel asas
         let selMakmal = document.createElement("td");
         let selUjian = document.createElement("td");
+        let selBeban = document.createElement("td");
         let selStatus = document.createElement("td");
         let selTindakan = document.createElement("td");
 
@@ -173,14 +174,15 @@
         // 6. Isi kandungan sel
         selMakmal.innerHTML = `${idHospital}</br>${namaHospital}`;
         selUjian.innerHTML = `${rekod[2]}</br>${dataU[2]}`;
-        selStatus.innerHTML = `${rekod[3]}</br>${rekod[4]}`;
+        selBeban.innerHTML = `${rekod[3]}`
+        selStatus.innerHTML = `${rekod[4]}</br>${rekod[5]}`;
         selTindakan.append(kumpulanButangMerujuk, kumpulanButangRujukan);
 
         // 7. Sambungkan semua elemen
-        baris.append(selMakmal, selUjian, selStatus, selTindakan);
+        baris.append(selMakmal, selUjian, selBeban, selStatus, selTindakan);
 
         // 8. Tambah warna baris berdasarkan status
-        baris.classList.add(KELASWARNA[rekod[3]]);
+        baris.classList.add(KELASWARNA[rekod[4]]);
 
         return baris;
     }

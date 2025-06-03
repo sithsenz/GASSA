@@ -397,7 +397,7 @@ function kemaskiniStatusPerjanjian(idPerjanjian, statusPerjanjian, tarikh, idHos
 
     // Kemaskini status dan tarikh
     let dataBaru = [[statusPerjanjian, tarikh]];
-    lembaran.perjanjian.getRange(baris, 4, 1, 2).setValues(dataBaru);
+    lembaran.perjanjian.getRange(baris, 5, 1, 2).setValues(dataBaru);
 
     // Dapatkan data terkini berdasarkan jenis hubungan
     if (sebagai == HOSPITAL.MERUJUK) {
