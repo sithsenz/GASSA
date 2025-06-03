@@ -398,27 +398,33 @@
         let dataBaru = [idHospital, ...Object.values(dataBorang), "Aktif", tarikh];
 
         // 4. Proses berdasarkan jenis urusan
-        makanCerna(kunci).then(makanan => {
-            // Bandingkan hash kunci input vs hash sedia ada
-            if (ubat != makanan) {
-                kotakPesanan(NOTA.AMARAN, NOTA.LARANG);
-                return;
-            }
+        if (jenisUrusan == URUSAN.DAFTAR) {
+            makanCerna(kunci).then(makanan => {
+                let dataHospitalBaru = ["", makanan, ...Object.values(dataBorang), "Aktif", tarikh];
+                google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
+                utiHantar();
+            });
 
-            let dataHospitalBaru = ["", makanan, ...Object.values(dataBorang), "Aktif", tarikh];
+        } else if (jenisUrusan == URUSAN.KEMASKINI) {
+            makanCerna(kunci).then(makanan => {
+                // Bandingkan hash kunci input vs hash sedia ada
+                if (ubat != makanan) {
+                    kotakPesanan(NOTA.AMARAN, NOTA.LARANG);
+                    return;
+                }
 
+                google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
+                utiHantar();
+            });
+        }
+
+        function utiHantar(namaHospital) {
             dataAsal = "";  // Kosongkan cache global
             nota.innerHTML = NOTA.TUNGGU;
             badanJadual.innerHTML = "";  // Kosongkan jadual
             modal.butangX.click();  // Tutup modal
-            inputCarian.value = namaHospital;  // Paparkan hospital terlibat sahaja
-
-            if (jenisUrusan == URUSAN.KEMASKINI) {
-                google.script.run.withSuccessHandler(simpanData).kemaskiniHospital(dataBaru);
-            } else if (jenisUrusan == URUSAN.DAFTAR) {
-                google.script.run.withSuccessHandler(simpanData).daftarHospitalBaru(dataHospitalBaru);
-            }
-        });
+            inputCarian.value = dataBorang.namaHospital;  // Paparkan hospital terlibat sahaja
+        }
     }
 
     /*===============
